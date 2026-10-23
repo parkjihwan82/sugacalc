@@ -1,0 +1,2697 @@
+<!doctype html>
+<!--
+Copyright (c) 2026 마음주간보호센터. All Rights Reserved.
+2026 장기요양급여 수가 및 가산 자동계산 통합 프로그램
+본 프로그램의 자체 작성 화면, 설명문, 구체적 계산 구현, HTML/CSS/JavaScript 코드 및 사용방법 문서는
+관련 법령이 인정하는 범위에서 보호됩니다.
+공개 법령·고시·공공기관 원문 및 공개된 산정기준 자체에 대한 독점적 권리를 주장하지 않습니다.
+Unauthorized reproduction, redistribution, resale, or removal of this notice is prohibited to the extent permitted by law.
+-->
+
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#173b5d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="수가계산">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+<title>급여종류별 수가 자동계산 | 마음주간보호센터</title>
+<style>
+:root{--bg:#f6f8fb;--card:#fff;--line:#d9dee7;--text:#172033;--muted:#667085;--accent:#2563eb;--good:#087443;--warn:#b54708}
+*{box-sizing:border-box} body{margin:0;font-size:18px;font-family:Arial,"Noto Sans KR",sans-serif;background:linear-gradient(180deg,#eef5f8 0,#f8fafb 280px,#f5f7f9 100%);color:var(--text)}
+.wrap{max-width:1100px;margin:28px auto;padding:0 16px 40px}
+h1{font-size:28px;margin:0 0 6px}.sub{color:var(--muted);margin-bottom:22px}
+.card{background:rgba(255,255,255,.97);border:1px solid #cfdbe2;border-radius:12px;padding:18px;margin:14px 0;box-shadow:0 5px 14px rgba(22,50,79,.06)}
+.topgrid,.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+label{font-size:15px;color:var(--muted);display:block;margin-bottom:6px}
+select,input{width:100%;padding:10px 12px;border:1px solid #cfd5df;border-radius:9px;background:#fff;font-size:17px}
+h2{font-size:21px;margin:0 0 14px}
+table{width:100%;border-collapse:collapse} th,td{padding:10px 8px;border-bottom:1px solid #e7eaf0;text-align:left}
+th{font-size:15px;color:var(--muted);background:#fafbfc}.money{text-align:right;font-variant-numeric:tabular-nums}
+.count{width:90px}
+button{border:0;border-radius:9px;padding:9px 12px;cursor:pointer}.add{background:#eef4ff;color:#1849a9}.del{background:#fff1f0;color:#b42318}
+.section-action-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+.section-reset-btn{margin-left:auto;background:#fff1f0;color:#b42318;border:1px solid #f0b8b3;font-weight:700;white-space:nowrap}
+.big{font-size:24px;font-weight:700}.good{color:var(--good)}.warn{color:var(--warn)}
+.note{font-size:15px;color:var(--muted);line-height:1.6;margin-top:10px}
+.service-month-summary>div{display:flex;flex-direction:column;gap:5px;min-width:0}
+.service-month-summary .service-count{font-size:19px;font-weight:700;color:#274d69}
+.service-month-summary .service-total{font-size:20px;font-weight:800;color:#087443;white-space:nowrap}
+.calc-print-actions{display:flex;justify-content:flex-end;gap:8px;margin:14px 0 0}
+.calc-print-btn{background:#173b5d;color:#fff;font-size:16px;font-weight:700;padding:10px 18px}
+.calc-reset-btn{background:#fff1f0;color:#b42318;border:1px solid #f0b8b3;font-size:16px;font-weight:700;padding:10px 18px}
+.monthly-title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin:0 0 18px}
+.monthly-title-row h2{margin:0!important;white-space:nowrap}
+.client-info{display:grid;grid-template-columns:180px 210px 230px;gap:10px;align-items:end}
+.client-info label{margin:0;font-size:14px;font-weight:700;color:#526277}
+.client-info input{margin-top:5px;padding:8px 10px;font-size:15px;background:#fff}
+.client-info .family-care-toggle{display:flex;align-items:center;gap:9px;min-height:42px;padding:7px 10px;border:1px solid #cfd5df;border-radius:9px;background:#fff;cursor:pointer}
+.client-info .family-care-toggle input{width:20px;height:20px;flex:0 0 20px;margin:0;padding:0;accent-color:#173b5d}
+.client-info .family-care-toggle span{display:flex;flex-direction:column;gap:2px;line-height:1.15}
+.client-info .family-care-toggle strong{font-size:14px;color:#253b50}
+.client-info .family-care-toggle small{font-size:11px;font-weight:600;color:#b54708}
+@media(max-width:720px){.topgrid,.summary{grid-template-columns:1fr !important}table{font-size:15px}th,td{padding:8px 5px}}
+
+@page{size:A4 portrait;margin:5mm}
+@media print{
+ html,body{
+  width:200mm!important;height:287mm!important;max-height:287mm!important;
+  margin:0!important;padding:0!important;overflow:hidden!important;background:#fff!important
+ }
+ body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ body>*:not(.wrap){display:none!important}
+ .wrap{
+  position:relative!important;width:200mm!important;height:285mm!important;max-height:285mm!important;
+  max-width:none!important;margin:0!important;padding:0 2mm!important;overflow:hidden!important
+ }
+ .wrap>*{display:none!important}
+ .wrap>#pageCalc{display:block!important}
+ #pageCalc{
+  position:absolute!important;inset:0 2mm!important;width:auto!important;height:285mm!important;
+  max-height:285mm!important;padding:0!important;margin:0!important;overflow:hidden!important
+ }
+ .calc-print-actions,.add,.del,.section-reset-btn,#programFooter{display:none!important}
+ .claim-disclaimer{display:block!important}
+ #pageCalc>.card{
+  break-inside:avoid!important;page-break-inside:avoid!important;
+  margin:3mm 0!important;padding:4mm!important;box-shadow:none!important
+ }
+ #pageCalc>.card:first-of-type{
+  margin-top:0!important;padding:4mm!important
+ }
+ #pageCalc>.card:first-of-type h1{font-size:21px!important;margin-bottom:1.5mm!important}
+ #pageCalc>.card:first-of-type>div{margin-bottom:1mm!important;line-height:1.35!important}
+ .claim-disclaimer{
+  margin:2.5mm 0!important;padding:2.5mm 3mm!important;font-size:11px!important;line-height:1.35!important
+ }
+ #pageCalc>.card:nth-of-type(2)>h2{font-size:18px!important;margin:0 0 4mm!important}
+ .monthly-title-row{display:flex!important;align-items:flex-end!important;margin:0 0 3mm!important;gap:3mm!important}
+ .monthly-title-row h2{font-size:18px!important;margin:0!important}
+ .client-info{display:grid!important;grid-template-columns:34mm 40mm 48mm!important;gap:2mm!important;margin-left:auto!important}
+ .client-info label{font-size:10px!important;margin:0!important;text-align:left!important}
+ .client-info input{font-size:11px!important;height:7mm!important;margin-top:1mm!important;padding:1mm 2mm!important}
+ .client-info .family-care-toggle{min-height:9mm!important;height:9mm!important;padding:1mm 2mm!important;gap:1.5mm!important}
+ .client-info .family-care-toggle input{width:4mm!important;height:4mm!important;flex-basis:4mm!important;margin:0!important;padding:0!important}
+ .client-info .family-care-toggle strong{font-size:10px!important}
+ .client-info .family-care-toggle small{font-size:8px!important}
+ #pageCalc .summary{display:grid!important;align-items:stretch!important;gap:2.5mm!important}
+ #pageCalc .summary[style*="repeat(4,1fr)"]{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+ #pageCalc .summary:not(.service-month-summary){grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #pageCalc .summary:first-of-type{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+ #pageCalc .summary[style*="margin-top:20px"]{margin-top:3.5mm!important}
+ #pageCalc .summary>div{
+  min-width:0!important;padding:3mm 2.5mm!important;text-align:center!important;
+  display:flex!important;flex-direction:column!important;justify-content:center!important
+ }
+ #pageCalc label,#pageCalc .month-main-label{
+  font-size:12px!important;font-weight:700!important;line-height:1.25!important;
+  margin:0 0 2mm!important;text-align:center!important;color:#526277!important
+ }
+ #pageCalc select{
+  border:0!important;background:transparent!important;padding:0!important;height:auto!important;
+  text-align:center!important;text-align-last:center!important;font-size:16px!important;font-weight:700!important;
+  color:#16324f!important;appearance:none!important;-webkit-appearance:none!important
+ }
+ #pageCalc .big{font-size:18px!important;line-height:1.2!important;white-space:nowrap!important}
+ #pageCalc .service-month-summary{grid-template-columns:repeat(4,minmax(0,1fr))!important;margin-top:3.5mm!important}
+ #pageCalc .service-month-summary>div{gap:1.5mm!important}
+ #pageCalc .service-month-summary .service-count,
+ #pageCalc .service-month-summary .service-total{
+  display:block!important;font-size:14px!important;line-height:1.2!important;white-space:nowrap!important;text-align:center!important
+ }
+ #services{display:block!important;margin-top:2mm!important}
+ #services>.card{
+  display:block!important;margin:2mm 0!important;padding:2.5mm!important;
+  border-radius:5px!important;box-shadow:none!important;overflow:visible!important;
+  break-inside:avoid!important;page-break-inside:avoid!important
+ }
+ #services>.card h2{
+  font-size:15px!important;line-height:1.2!important;margin:0 0 1.5mm!important;
+  padding-left:2mm!important;border-left-width:3px!important
+ }
+ #services table{font-size:10px!important;table-layout:fixed!important;border-collapse:collapse!important}
+ #services th,#services td{
+  font-size:10px!important;line-height:1.15!important;padding:1.2mm 1mm!important;
+  height:auto!important;vertical-align:middle!important
+ }
+ #services th:first-child,#services td:first-child{width:28%!important}
+ #services th:last-child,#services td:last-child{display:none!important}
+ #services select,#services input{
+  font-size:10px!important;line-height:1.1!important;height:6mm!important;padding:1mm!important;
+  border-radius:3px!important
+ }
+ #services .count{width:100%!important;min-width:0!important;text-align:center!important}
+ #ruleNote{display:none!important}
+}
+
+/* 월 계산 주요 항목명 1포인트 확대 */
+#sUsed, #sRemain, #sOver { }
+#sUsed + * { }
+.month-main-label{font-size:16px !important;font-weight:600}
+
+
+.navtabs{display:flex;gap:10px;margin:18px 0}
+.navbtn{font-size:17px;font-weight:700;padding:11px 16px;border:1px solid #cfd5df;background:#fff;color:#344054;border-radius:10px}
+.navbtn.active{background:#172033;color:#fff}
+.page{display:none}.page.active{display:block}
+.rate-section{margin-top:20px}
+.rate-section h3{font-size:20px;margin:0 0 10px}
+.rate-table th,.rate-table td{font-size:16px}
+.rate-table td:nth-child(n+2){text-align:right}
+
+
+@media(max-width:720px){
+ .navtabs{flex-wrap:wrap}
+ .navbtn{flex:1 1 100%}
+ #bonusFrame{height:2800px !important}
+ #dayMonthlyFrame{height:3600px !important}
+}
+
+/* 마음케어 플러스 가산점수 계산기 배경 스타일 통일 */
+#services .card{overflow-x:auto}
+#pageCalc, #pageRates{
+  padding:2px 0 12px;
+}
+#pageCalc > h1, #pageRates h1{
+  color:#16324f;
+  letter-spacing:-.4px;
+}
+#pageCalc .card, #pageRates .card{
+  border-color:#cfdbe2;
+}
+
+
+/* ===== 마음케어 플러스 디자인 통합 V2 ===== */
+:root{
+ --mcp-deep:#16324f; --mcp-blue:#2f6690; --mcp-sky:#d9ecf5;
+ --mcp-mint:#e8f5f1; --mcp-cream:#fffaf0; --mcp-coral:#ef6f6c;
+ --mcp-gold:#e9b949; --mcp-ink:#243447;
+}
+body{
+ background:linear-gradient(180deg,#eef5f8 0,#f8fafb 280px,#f5f7f9 100%) !important;
+ color:var(--mcp-ink);
+}
+.wrap{max-width:1200px}
+.navtabs{
+ background:linear-gradient(135deg,var(--mcp-deep),var(--mcp-blue));
+ border-bottom:4px solid var(--mcp-gold);
+ padding:14px;border-radius:12px;gap:8px;box-shadow:0 8px 20px rgba(22,50,79,.14)
+}
+.navbtn{
+ background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.28);
+ border-radius:7px
+}
+.navbtn.active{background:#fff;color:var(--mcp-deep);border-color:#fff}
+#pageCalc>h1,#pageRates h1{color:var(--mcp-deep);letter-spacing:-.5px}
+#pageCalc>.sub,#pageRates .sub{color:#617586}
+.card{
+ background:#fff !important;border:1px solid #cfdbe2 !important;border-radius:10px !important;
+ box-shadow:0 5px 14px rgba(22,50,79,.06) !important
+}
+.card h2{
+ color:#233f58;border-left:4px solid #4279a8;padding-left:8px;
+}
+.summary>div{
+ background:#f7fafc;border:1px solid #d8e2e8;border-radius:9px;padding:11px;
+}
+.summary>div:nth-child(2){background:#f3f8fc}
+.summary .big{color:var(--mcp-deep)}
+#sRemain{color:#087f5b!important}
+#sOver{color:#c92a2a!important}
+table{border:1px solid #cbd4df}
+th{
+ background:#274d69 !important;color:#fff !important;border-bottom:1px solid #cbd4df;
+}
+td{border-bottom:1px solid #dfe5eb}
+tbody tr:nth-child(even) td{background:#f7fafc}
+.add{background:#e8f1fb!important;color:#2457d6!important;font-weight:700}
+.del{background:#fff0f0!important;color:#c92a2a!important;font-weight:700}
+select,input{border-color:#bfc9d5;border-radius:6px}
+.rate-section{
+ background:#fff;border:1px solid #d8e2e8;border-radius:10px;padding:14px;margin-top:12px
+}
+.rate-section h3{
+ color:#233f58;border-left:4px solid var(--mcp-gold);padding-left:8px
+}
+#ruleNote{
+ background:#fff6dc;border-left:4px solid #e5a100;padding:11px 13px;border-radius:6px
+}
+@media(max-width:720px){
+ .navtabs{padding:9px}
+ .summary>div{padding:10px}
+ .rate-section{padding:10px}
+ .monthly-title-row{display:block}
+ .monthly-title-row h2{margin-bottom:12px!important}
+ .client-info{grid-template-columns:1fr}
+}
+
+
+/* 주간보호 수가표에만 적용 */
+#daycareRateTable th,
+#daycareRateTable td{
+  text-align:center !important;
+  vertical-align:middle;
+}
+
+
+/* 제19조 핵심정리 이전의 급여 수가표만 가운데 정렬 */
+#pageRates .rate-table-centered th,
+#pageRates .rate-table-centered td{
+  text-align:center !important;
+  vertical-align:middle;
+}
+
+
+/* 2026 장기요양급여 수가표 - 항목별 구분 강화 */
+#pageRates .rate-section{
+  margin:18px 0 24px !important;
+  padding:0 0 16px !important;
+  border:1px solid #c9d6df !important;
+  border-radius:10px !important;
+  overflow:hidden;
+  background:#fff !important;
+}
+#pageRates .rate-section > h3{
+  margin:0 0 14px !important;
+  padding:12px 16px !important;
+  border-left:0 !important;
+  border-bottom:3px solid #e9b949;
+  background:#eaf2f7;
+  color:#173b5d !important;
+  font-size:19px;
+}
+#pageRates .rate-section > table,
+#pageRates .rate-section > .rate-table{
+  width:calc(100% - 24px);
+  margin:0 12px;
+}
+#pageRates .rate-section > .note{
+  margin-left:12px;
+  margin-right:12px;
+}
+
+
+/* 수가표 모든 표의 각 항목을 가로/세로 실선으로 구분 */
+#pageRates table{
+  border-collapse:collapse !important;
+  border-spacing:0 !important;
+  border:1px solid #9fb0bd !important;
+}
+#pageRates table th,
+#pageRates table td{
+  border:1px solid #b7c4ce !important;
+  box-sizing:border-box;
+}
+#pageRates table th{
+  border-color:#8fa4b3 !important;
+}
+
+
+@media(max-width:720px){#visitBonusFrame{height:2700px!important}}
+</style>
+
+<style>
+@media print{
+  #pageCalc > .card:nth-of-type(2) .summary:first-of-type{
+    display:grid !important;
+    grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  }
+  #pageCalc > .card:nth-of-type(2) .summary:first-of-type > div{
+    display:flex !important;
+    min-width:0 !important;
+  }
+}
+</style>
+
+<style id="print-four-summary-fix">
+@media print{
+  #pageCalc .print-four-summary{
+    display:grid !important;
+    grid-template-columns:repeat(4,1fr) !important;
+    gap:2.5mm !important;
+    width:100% !important;
+  }
+  #pageCalc .print-four-summary > div{
+    display:flex !important;
+    flex-direction:column !important;
+    justify-content:center !important;
+    min-width:0 !important;
+    width:auto !important;
+    grid-column:auto !important;
+  }
+  #pageCalc .print-four-summary > div:nth-child(4){
+    display:flex !important;
+  }
+}
+</style>
+
+
+<style id="beneficiary-info-style">
+#pageCalc .beneficiary-summary{
+  display:grid;
+  grid-template-columns:1.05fr 1.15fr 1.45fr .9fr .9fr;
+  gap:10px;
+}
+#pageCalc .beneficiary-summary>div{min-width:0}
+#pageCalc .beneficiary-summary input{width:100%;box-sizing:border-box}
+@media(max-width:800px){
+  #pageCalc .beneficiary-summary{grid-template-columns:1fr 1fr}
+}
+@media print{
+  #pageCalc .beneficiary-card{display:block!important;page-break-inside:avoid!important}
+  #pageCalc .beneficiary-summary{
+    display:grid!important;
+    grid-template-columns:18% 20% 25% 18% 19%!important;
+    gap:0!important;width:100%!important;
+  }
+  #pageCalc .beneficiary-summary>div{
+    display:flex!important;flex-direction:column!important;
+    min-width:0!important;width:auto!important;
+    padding:2mm 1mm!important;box-sizing:border-box!important;
+  }
+  #pageCalc .beneficiary-summary label{
+    font-size:8px!important;line-height:1.1!important;white-space:nowrap!important;
+  }
+  #pageCalc .beneficiary-summary input,
+  #pageCalc .beneficiary-summary .big{
+    font-size:10px!important;line-height:1.15!important;
+    width:100%!important;min-width:0!important;padding:1mm!important;box-sizing:border-box!important;
+  }
+  #pageCalc .beneficiary-card .privacy-note{display:none!important}
+}
+</style>
+
+
+<style id="compact-top-layout">
+/* 상단 영역을 작게 만들어 아래 급여별 입력영역이 빨리 보이도록 함 */
+#pageCalc .beneficiary-card{padding:12px 16px!important;margin-bottom:10px!important}
+#pageCalc .beneficiary-card h2{margin:0 0 8px!important;font-size:18px!important}
+#pageCalc .beneficiary-summary{
+  grid-template-columns:1.1fr 1.2fr .85fr!important;
+  gap:7px!important;
+}
+#pageCalc .beneficiary-summary>div{padding:8px 10px!important;min-height:58px!important}
+#pageCalc .beneficiary-summary label{font-size:12px!important;margin-bottom:4px!important}
+#pageCalc .beneficiary-summary input{height:34px!important;padding:5px 8px!important;font-size:14px!important}
+#pageCalc .beneficiary-summary .big{font-size:19px!important;line-height:1.15!important}
+#pageCalc .beneficiary-card .note{font-size:11px!important;margin-top:6px!important;line-height:1.25!important}
+
+/* 월 수가 계산 카드 압축 */
+#pageCalc .beneficiary-card + .card{padding:12px 16px!important}
+#pageCalc .beneficiary-card + .card h2{font-size:18px!important;margin-bottom:7px!important}
+#pageCalc .beneficiary-card + .card .summary{gap:7px!important;margin-top:7px!important}
+#pageCalc .beneficiary-card + .card .summary>div{padding:8px 10px!important;min-height:58px!important}
+#pageCalc .beneficiary-card + .card .summary label{font-size:12px!important;margin-bottom:3px!important}
+#pageCalc .beneficiary-card + .card .summary .big{font-size:19px!important;line-height:1.15!important}
+#pageCalc .beneficiary-card + .card select,
+#pageCalc .beneficiary-card + .card input{height:34px!important;padding:4px 8px!important;font-size:14px!important}
+#pageCalc .beneficiary-card + .card .printbtn,
+#pageCalc .beneficiary-card + .card button{padding:8px 14px!important;font-size:13px!important}
+
+@media print{
+ #pageCalc .beneficiary-summary{
+   grid-template-columns:28% 28% 22% 22%!important;
+ }
+}
+</style>
+
+
+<style id="one-page-four-services-print">
+@media print{
+  @page{size:A4 portrait;margin:5mm!important}
+  html,body{width:100%!important;margin:0!important;padding:0!important}
+  body{font-size:8px!important;line-height:1.08!important}
+  .wrap{width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+
+  /* 인쇄에 불필요한 설명/버튼은 숨김 */
+  #pageCalc .note,
+  #pageCalc button,
+  #pageCalc .printbtn{display:none!important}
+
+  /* 상단 제목부와 카드 간격 최소화 */
+  #pageCalc .hero{padding:4mm!important;margin:0 0 2mm!important}
+  #pageCalc .hero h1{font-size:15px!important;margin:0 0 1mm!important}
+  #pageCalc .hero p{font-size:8px!important;margin:0!important}
+  #pageCalc .card{padding:2mm!important;margin:0 0 2mm!important;border-radius:2mm!important;page-break-inside:avoid!important}
+  #pageCalc .card h2{font-size:11px!important;margin:0 0 1.5mm!important}
+
+  /* 수급자 정보 */
+  #pageCalc .beneficiary-summary{
+    display:grid!important;
+    grid-template-columns:28% 28% 22% 22%!important;
+    gap:1mm!important;
+  }
+  #pageCalc .beneficiary-summary>div{padding:1mm!important;min-height:0!important}
+  #pageCalc .beneficiary-summary label{font-size:7px!important;margin:0!important}
+  #pageCalc .beneficiary-summary input,
+  #pageCalc .beneficiary-summary .big{font-size:8px!important;height:auto!important;padding:.5mm!important}
+
+  /* 월 수가 요약 전체 압축 */
+  #pageCalc .summary{gap:1mm!important;margin:1mm 0!important}
+  #pageCalc .summary>div{padding:1mm!important;min-height:0!important;border-radius:1.5mm!important}
+  #pageCalc .summary label{font-size:7px!important;margin:0 0 .4mm!important}
+  #pageCalc .summary .big{font-size:9px!important;line-height:1.05!important}
+  #pageCalc select,#pageCalc input{font-size:8px!important;height:auto!important;padding:.5mm!important}
+
+  /* 주간보호/방문요양/방문목욕/방문간호 4개 급여 카드를 2×2로 배치 */
+  #services{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:1.5mm!important;
+    align-items:start!important;
+  }
+  #services>.card{
+    display:block!important;
+    width:auto!important;
+    margin:0!important;
+    padding:1.5mm!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+  #services>.card h2{font-size:9px!important;margin:0 0 1mm!important}
+
+  /* 서비스 표를 최대한 작게 */
+  #services table{width:100%!important;border-collapse:collapse!important;table-layout:fixed!important;font-size:6.5px!important}
+  #services th,#services td{padding:.6mm .35mm!important;font-size:6.5px!important;line-height:1.05!important;white-space:normal!important}
+  #services th:first-child,#services td:first-child{width:25%!important}
+  #services select,#services input{font-size:6.5px!important;padding:0!important;height:5mm!important;min-width:0!important;width:100%!important}
+  #services .money{font-size:6.5px!important}
+  #services .del,#services .add{display:none!important}
+
+  /* 브라우저가 임의로 확대해 2페이지로 넘기는 것을 방지 */
+  #pageCalc{zoom:.86}
+}
+</style>
+
+
+<style id="normal-screen-compact-v2">
+@media screen{
+  /* 월 수가 계산 영역만 약 10~15% 압축 */
+  #pageCalc .beneficiary-card + .card{
+    padding:10px 14px!important;
+    margin-bottom:10px!important;
+  }
+  #pageCalc .beneficiary-card + .card h2{
+    font-size:17px!important;
+    margin:0 0 6px!important;
+  }
+  #pageCalc .beneficiary-card + .card .summary{
+    gap:6px!important;
+    margin-top:6px!important;
+  }
+  #pageCalc .beneficiary-card + .card .summary>div{
+    padding:6px 9px!important;
+    min-height:50px!important;
+  }
+  #pageCalc .beneficiary-card + .card .summary label{
+    font-size:11px!important;
+    margin-bottom:2px!important;
+  }
+  #pageCalc .beneficiary-card + .card .summary .big{
+    font-size:17px!important;
+    line-height:1.1!important;
+  }
+  #pageCalc .beneficiary-card + .card select,
+  #pageCalc .beneficiary-card + .card input{
+    height:31px!important;
+    padding:3px 7px!important;
+    font-size:13px!important;
+  }
+  #pageCalc .beneficiary-card + .card button{
+    padding:7px 12px!important;
+    font-size:12px!important;
+  }
+  #pageCalc .beneficiary-card + .card .note{
+    padding:8px 10px!important;
+    margin-top:7px!important;
+    font-size:11px!important;
+  }
+}
+</style>
+
+<style id="beneficiary-top-five-update">
+#pageCalc .beneficiary-summary{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+#pageCalc .beneficiary-summary select{height:34px!important;padding:5px 8px!important;font-size:14px!important}
+#pageCalc .beneficiary-summary .family-care-toggle{display:flex;align-items:center;gap:7px;margin:0;padding:5px 6px;border:1px solid #cfd5df;border-radius:6px;min-height:34px;color:#253b50}
+#pageCalc .beneficiary-summary .family-care-toggle input{width:17px!important;height:17px!important;flex:0 0 17px;margin:0}
+#pageCalc .beneficiary-summary .family-care-toggle strong{font-size:12px}
+#pageCalc .beneficiary-summary .family-care-toggle small{font-size:10px;color:#b54708}
+#pageCalc .monthly-cost-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+@media(max-width:720px){#pageCalc .beneficiary-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media print{
+ #pageCalc .beneficiary-summary{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+ #pageCalc .beneficiary-summary select{font-size:8px!important;height:auto!important;padding:.5mm!important}
+ #pageCalc .beneficiary-summary .family-care-toggle{min-height:0!important;padding:0!important;border:0!important}
+ #pageCalc .beneficiary-summary .family-care-toggle strong{font-size:7px!important}
+ #pageCalc .beneficiary-summary .family-care-toggle small{font-size:6px!important}
+ #pageCalc .monthly-cost-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+</style>
+<style id="five-column-layout">
+#pageCalc .beneficiary-summary{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+#pageCalc .monthly-five,#pageCalc .service-five{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:7px!important}
+#pageCalc .monthly-five>div,#pageCalc .service-five>div{min-width:0;padding:9px 5px;text-align:center}
+#pageCalc .service-five .service-count{font-size:15px}
+#pageCalc .service-five .service-total{font-size:15px;white-space:normal;overflow-wrap:anywhere}
+#pageCalc .private-check{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+#pageCalc .private-check input{width:15px!important;height:15px!important;margin:0}
+#pageCalc .copay-value-row{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:nowrap}
+#pageCalc .copay-value-row .big{margin:0}
+#pageCalc .copay-value-row .private-check{padding:2px 7px;border:1px solid #b9cbd6;border-radius:999px;background:#f2f7fa;font-size:12px;font-weight:700;color:#31536a;cursor:pointer}
+#pageCalc .beneficiary-summary select{font-size:14px;height:34px;padding:4px}
+@media(max-width:800px){#pageCalc .beneficiary-summary,#pageCalc .monthly-five,#pageCalc .service-five{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:440px){#pageCalc .beneficiary-summary,#pageCalc .monthly-five,#pageCalc .service-five{grid-template-columns:1fr!important}}
+@media print{
+#pageCalc .beneficiary-summary,#pageCalc .monthly-five,#pageCalc .service-five{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+#pageCalc .monthly-five>div,#pageCalc .service-five>div{display:flex!important;flex-direction:column!important;min-width:0!important;padding:1mm!important}
+#pageCalc .service-five .service-count,#pageCalc .service-five .service-total{font-size:8px!important;white-space:normal!important}
+#pageCalc .beneficiary-summary select{font-size:8px!important}
+#pageCalc .private-check input{width:3mm!important;height:3mm!important}
+}
+</style><style id="service-summary-additions">
+.service-detail-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:12px 0 6px}
+.service-detail-summary>div{background:#eef5f9;border:1px solid #cbdde8;border-radius:7px;padding:9px;text-align:center;min-width:0}
+.service-detail-summary label{font-size:12px;font-weight:700;margin-bottom:5px}
+.service-detail-summary strong{display:block;font-size:16px;color:#173b5d;overflow-wrap:anywhere}
+.private-time-summary{grid-template-columns:repeat(3,minmax(0,1fr)) auto}
+.private-time-summary .summary-reset-cell{display:flex;align-items:center;justify-content:center;background:transparent;border:0;padding:0 0 0 8px}
+.private-time-summary .summary-reset-cell .section-reset-btn{margin-left:0;height:100%}
+@media(max-width:720px){.service-detail-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.private-time-summary .summary-reset-cell{grid-column:1/-1;justify-content:flex-end}}
+@media print{.service-detail-summary{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:1mm!important;margin:1mm 0!important}.service-detail-summary>div{padding:1mm!important}.service-detail-summary label{font-size:6px!important}.service-detail-summary strong{font-size:7px!important}.private-time-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important}.private-time-summary .summary-reset-cell{display:none!important}}
+</style>
+<style id="private-time-column-width-fix">
+#pageCalc .private-time-table{width:100%;table-layout:fixed;min-width:700px}
+#pageCalc .private-time-table th:nth-child(1){width:10%}
+#pageCalc .private-time-table th:nth-child(2){width:18%}
+#pageCalc .private-time-table th:nth-child(3){width:12%}
+#pageCalc .private-time-table th:nth-child(4){width:21%}
+#pageCalc .private-time-table th:nth-child(5){width:14%}
+#pageCalc .private-time-table th:nth-child(6){width:25%}
+#pageCalc .private-time-table td:nth-child(6),
+#pageCalc .private-time-table th:nth-child(6){
+ white-space:nowrap!important;text-align:right!important;word-break:keep-all;
+}
+#pageCalc .private-time-table td:nth-child(6){font-variant-numeric:tabular-nums;font-weight:700}
+#pageCalc .private-time-table input{min-width:0;width:100%}
+@media print{
+ #pageCalc .private-time-table{min-width:0!important}
+ #pageCalc .private-time-table th:last-child,
+ #pageCalc .private-time-table td:last-child{display:table-cell!important}
+}
+</style>
+<style id="six-service-layout">
+#pageCalc .service-month-summary.service-five{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+#pageCalc .service-month-summary.service-five>div{min-width:0}
+#pageCalc .service-month-summary.service-five label{white-space:normal;overflow-wrap:anywhere}
+@media(min-width:1050px){#pageCalc .service-month-summary.service-five{grid-template-columns:repeat(6,minmax(0,1fr))!important}}
+@media(max-width:650px){#pageCalc .service-month-summary.service-five{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media print{#pageCalc .service-month-summary.service-five{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+</style><style id="service-navigation-fix">
+.service-quick-links{display:flex;flex-wrap:wrap;gap:8px}
+.service-quick-links a{display:inline-block;padding:9px 12px;background:#e8f1fb;border:1px solid #b8ccdf;border-radius:7px;color:#173b5d;font-size:14px;font-weight:700;text-decoration:none}
+#service-bath,#service-nurse{display:block!important;scroll-margin-top:12px}
+@media print{#serviceQuickNav{display:none!important}}
+</style><style id="mobile-fix">
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media screen and (max-width:720px){
+ .wrap{margin:12px auto;padding:0 8px 30px}
+ #services .card,#privateServiceCard,#privateCostCard{overflow-x:auto;-webkit-overflow-scrolling:touch}
+ #services table{min-width:620px}
+ #privateOtherTable{min-width:520px}
+ select,input,#pageCalc .beneficiary-summary input,#pageCalc .beneficiary-summary select{font-size:16px!important}
+ #pageCalc .monthly-five,#pageCalc .beneficiary-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+</style>
+<style id="responsive-pc-mobile">
+/* ===== PC·태블릿·휴대폰 반응형 (화면 전용, 인쇄 양식은 변경 없음) ===== */
+@media screen{
+ html{scroll-behavior:smooth}
+ button,select,input{touch-action:manipulation}
+}
+/* 대형 모니터 (1440px 이상) */
+@media screen and (min-width:1440px){
+ .wrap,#programFooter,#masterCopyright{max-width:1360px!important}
+ body{font-size:18px}
+}
+/* 일반 PC 모니터 (1025~1439px) */
+@media screen and (min-width:1025px) and (max-width:1439px){
+ .wrap,#programFooter,#masterCopyright{max-width:1200px!important}
+}
+/* 태블릿·작은 노트북 (761~1024px) */
+@media screen and (min-width:761px) and (max-width:1024px){
+ .wrap{max-width:100%!important;padding:0 14px 30px}
+ .navtabs{flex-wrap:wrap}
+ .navbtn{flex:1 1 calc(50% - 8px);font-size:15px}
+ #pageCalc .beneficiary-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #pageCalc .monthly-five{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #pageCalc .service-month-summary.service-five{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #services .card,#privateServiceCard,#privateCostCard{overflow-x:auto}
+}
+/* 휴대폰 (760px 이하) */
+@media screen and (max-width:760px){
+ body{font-size:16px}
+ .wrap{margin:0 auto!important;padding:0 10px 24px!important;max-width:100%!important}
+ /* 상단 메뉴: 화면 위에 고정, 좌우로 밀어서 선택 */
+ .navtabs{position:sticky;top:0;z-index:50;margin:0 -10px 10px!important;border-radius:0!important;
+   padding:8px 10px!important;flex-wrap:nowrap!important;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+ .navtabs::-webkit-scrollbar{display:none}
+ .navbtn{flex:0 0 auto!important;width:auto!important;font-size:14px!important;padding:9px 12px!important;white-space:nowrap}
+ .card{padding:12px!important;margin:10px 0!important}
+ .card h1{font-size:21px!important}
+ .card h2{font-size:17px!important}
+ .claim-disclaimer{font-size:12px!important}
+ /* 입력칸: 16px 이상(아이폰 자동확대 방지), 손가락 터치 크기 확보 */
+ select,input[type=text],input[type=number]{font-size:16px!important;min-height:42px!important;height:auto!important}
+ button{min-height:42px}
+ /* 요약 영역 2칸 */
+ #pageCalc .beneficiary-summary,#pageCalc .monthly-five{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #pageCalc .beneficiary-summary>div:first-child{grid-column:1/-1}
+ #pageCalc .monthly-five>div:last-child{grid-column:1/-1}
+ #pageCalc .service-month-summary.service-five{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #pageCalc .beneficiary-card + .card .summary .big{font-size:18px!important}
+ #pageCalc .service-five .service-count,#pageCalc .service-five .service-total{font-size:14px!important}
+ .calc-print-actions{justify-content:stretch}
+ .calc-print-actions button{flex:1}
+ .service-quick-links{display:grid;grid-template-columns:repeat(2,1fr)}
+ .service-quick-links a{text-align:center;padding:11px 6px}
+ .service-detail-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .section-action-row button{flex:1}
+ .private-time-actions select{flex:1;width:auto}
+ .private-time-actions button,.private-other-actions button{flex:1}
+ .private-other-actions label{flex:1 1 100%}
+
+ /* 입력 표 → 휴대폰에서는 한 줄씩 카드 형태 */
+ #services .card,#privateServiceCard,#privateCostCard{overflow:visible!important}
+ #services table,#pageCalc .private-time-table,#privateOtherTable{min-width:0!important;width:100%!important;table-layout:auto!important;border:0!important}
+ #services thead,#pageCalc .private-time-table thead,#privateOtherTable thead{display:none}
+ #services tbody,#pageCalc .private-time-table tbody,#privateOtherTable tbody{display:block}
+ #services tbody tr,#pageCalc .private-time-table tbody tr,#privateOtherTable tbody tr{
+   display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;padding:12px;margin:0 0 10px;
+   border:1px solid #c9d6df;border-radius:10px;background:#f9fbfd}
+ #services tbody tr td,#pageCalc .private-time-table tbody tr td,#privateOtherTable tbody tr td{
+   display:flex;flex-direction:column;gap:4px;padding:0!important;border:0!important;background:transparent!important;
+   text-align:left!important;width:auto!important;white-space:normal!important}
+ #services tbody tr td::before,#pageCalc .private-time-table tbody tr td::before,#privateOtherTable tbody tr td::before{
+   content:attr(data-label);font-size:12px;font-weight:700;color:#5b6d7f}
+ #services tbody tr td:first-child,#pageCalc .private-time-table tbody tr td:first-child,#privateOtherTable tbody tr td:first-child{grid-column:1/-1;font-weight:700}
+ #services td.money,#pageCalc .private-time-table td.money,#privateOtherTable td.money{font-size:16px;font-weight:700;color:#173b5d}
+ #services td.amount{grid-column:1/-1;background:#eaf2f7!important;border-radius:7px;padding:8px!important}
+ #services tbody tr td:last-child::before,#privateOtherTable tbody tr td:last-child::before{display:none}
+ #services tbody tr td:last-child,#privateOtherTable tbody tr td:last-child{grid-column:1/-1}
+ #services .del,#privateOtherTable .del{width:100%}
+ #services .count{width:100%!important}
+ #pageCalc .private-time-table td:nth-child(6){grid-column:1/-1;flex-direction:row;align-items:center;justify-content:space-between}
+
+ /* 수가표: 좌우로 밀어서 보기 */
+ #pageRates .rate-section{overflow-x:auto;-webkit-overflow-scrolling:touch}
+ #pageRates .rate-section>table{min-width:520px}
+ #pageRates .rate-section>table:not(#daycareRateTable){min-width:0}
+ #pageRates #daycareRateTable{min-width:640px}
+ #pageRates .rate-table th,#pageRates .rate-table td{font-size:14px;padding:8px 6px}
+ #programFooter,#masterCopyright{margin:16px 10px!important}
+}
+/* 아주 작은 휴대폰 (380px 이하) */
+@media screen and (max-width:380px){
+ #pageCalc .beneficiary-summary,#pageCalc .monthly-five,#pageCalc .service-month-summary.service-five{grid-template-columns:1fr!important}
+ .navbtn{font-size:13px!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="navtabs">
+ <button class="navbtn active" id="tabCalc" type="button" onclick="showPage('calc')">2026년 장기요양급여 수가 자동계산기</button>
+ <button class="navbtn" id="tabVisitBonus" type="button" onclick="showPage('visitbonus')">방문요양월별예상 가산금 자동계산 vs1</button>
+<button class="navbtn" id="tabBonus" type="button" onclick="showPage('bonus')">주·야간보호 가산점수 자동계산</button>
+<button class="navbtn" id="tabDayMonthly" type="button" onclick="showPage('daymonthly')">주야간 단기보호 월별가산금 자동계산</button>
+ <button class="navbtn" id="tabRates" type="button" onclick="showPage('rates')">2026년 장기요양급여 수가표</button>
+</div>
+
+<div id="pageCalc" class="page active">
+
+<div class="card" style="background:linear-gradient(145deg,#173b5d,#285f85)!important;color:#fff!important;border:0!important">
+<h1 style="color:#fff!important;margin-bottom:7px">급여종류별 수가 자동계산</h1>
+<div style="font-size:13px;letter-spacing:1px;opacity:.85;margin-bottom:8px">마음주간보호센터 · 장기요양급여 수가 업무지원 도구</div>
+<div style="font-size:16px;line-height:1.6">방문요양, 방문목욕, 방문간호, 주간보호의 급여를 자동으로 계산해줍니다.</div>
+</div>
+<div class="claim-disclaimer" style="margin:12px 0;padding:10px 12px;background:#fff8e6;border:1px solid #ead59a;border-left:4px solid #d7a72b;border-radius:7px;font-size:13px;line-height:1.6;color:#5b4a22;">※ 본 프로그램의 계산 결과는 예상값이며, 실제 공단 청구 및 지급 결과와 다를 수 있습니다.</div>
+
+<div class="card beneficiary-card">
+  <h2>수급자 정보</h2>
+  <div class="summary beneficiary-summary">
+    <div><label>이름</label><input id="beneficiaryName" type="text" autocomplete="off" placeholder="이름"></div>
+    <div><label>생년월일</label><input id="beneficiaryBirth" type="text" autocomplete="off" placeholder="예: 1940-01-01"></div>
+    <div><label>장기요양등급</label><select id="grade">
+     <option value="1">1등급</option>
+     <option value="2">2등급</option>
+     <option value="3">3등급</option>
+     <option value="4">4등급</option>
+     <option value="5" selected>5등급</option>
+     <option value="cog">인지지원등급</option>
+   </select></div>
+    <div><label>본인부담금률</label><select id="copayRate">
+     <option value="0">0%</option>
+     <option value="0.06">6%</option>
+     <option value="0.09">9%</option>
+     <option value="0.15" selected>15%</option>
+   </select></div>
+    <div><label>가족요양 이용</label><label class="family-care-toggle"><input id="familyCare" type="checkbox"><span><strong>이용 여부</strong><small>체크 시 추가 한도 제외</small></span></label></div>
+  </div>
+  <div class="note privacy-note">※ 입력한 수급자 정보는 현재 화면과 인쇄에만 사용하며 GitHub 또는 외부 서버로 전송·저장하지 않습니다. 새로고침하면 직접 입력한 정보는 초기화됩니다.</div>
+</div>
+
+<div class="card">
+<div class="monthly-title-row">
+ <h2>월 수가 계산</h2>
+
+</div>
+
+<div class="summary monthly-five">
+ <div><label>기본 월 한도액</label><div id="sBase" class="big">0원</div></div>
+ <div><label>총 사용금액</label><div id="sUsed" class="big">0원</div></div>
+ <div><label>남은 금액 (추가가산 포함)</label><div id="sRemain" class="big good">0원</div></div>
+ <div><label>월 한도액 초과</label><div id="sOver" class="big warn">0원</div></div>
+ <div><label>본인부담금</label><div id="copayAmount" style="display:none">0원</div><div class="copay-value-row"><div id="copayDisplay" class="big">0원</div><label class="private-check"><input id="includePrivateCost" type="checkbox"> 사비 포함</label></div></div>
+</div>
+<h2 style="margin-top:16px">서비스별 이용요금</h2>
+<div class="summary service-month-summary service-five">
+ <div><label>주간보호</label><span id="cntDay" class="service-count">이용횟수 0회</span><span id="totalDay" class="service-total">총 급여 비용 0원</span></div>
+ <div><label>방문요양</label><span id="cntCare" class="service-count">이용횟수 0회</span><span id="totalCare" class="service-total">총 급여 비용 0원</span></div>
+ <div><label>방문목욕</label><span id="cntBath" class="service-count">이용횟수 0회</span><span id="totalBath" class="service-total">총 급여 비용 0원</span></div>
+ <div><label>방문간호</label><span id="cntNurse" class="service-count">이용횟수 0회</span><span id="totalNurse" class="service-total">총 급여 비용 0원</span></div>
+ <div><label>비급여 사비(서비스별)</label><span id="cntPrivate" class="service-count">이용횟수 0회</span><span id="totalPrivate" class="service-total">총 이용 비용 0원</span></div><div><label>비급여 사비(미용·식비·간식비·기타)</label><span id="cntPrivateOther" class="service-count">이용횟수 0회</span><span id="totalPrivateOther" class="service-total">총 이용 비용 0원</span></div>
+</div>
+
+<div class="calc-print-actions"><button type="button" class="calc-reset-btn" id="calcResetBtn">초기화</button><button type="button" class="calc-print-btn" onclick="window.print()">월 수가 계산 인쇄</button></div>
+
+<div style="display:none">
+ <div id="sExtra">0원</div>
+ <div id="sLimit">0원</div>
+</div>
+<div id="ruleNote" class="note"></div>
+</div>
+
+<div class="card" id="serviceQuickNav"><h2>서비스 항목 바로가기</h2><div class="service-quick-links">
+<a href="#service-day">주간보호</a><a href="#service-care">방문요양</a><a href="#service-bath">방문목욕</a><a href="#service-nurse">방문간호</a><a href="#privateServiceCard">비급여 사비 - 시간별 이용요금</a><a href="#privateCostCard">비급여 사비(미용·식비·간식비·기타)</a><a href="#top" class="go-top">처음으로</a></div></div><div id="services"></div><div class="card private-cost-card" id="privateServiceCard"><h2>비급여 사비 - 시간별 이용요금</h2><div class="private-time-actions"><label for="privateTimeSelect">시간 선택</label><select id="privateTimeSelect"></select><button type="button" class="add" id="privateTimeAdd">+ 선택 항목 추가</button></div><div style="overflow-x:auto"><table class="private-time-table"><thead><tr><th>시간 / 유형목록</th><th>금액 (수기입력)</th><th>횟수</th><th>공휴일 이용요금 (1회)</th><th>공휴일 횟수</th><th class="money">사용금액</th></tr></thead><tbody></tbody></table></div><div class="note">※ 사용금액 = 일반 금액 × 일반 횟수 + 공휴일 1회 이용요금 × 공휴일 횟수. 총 횟수는 일반 횟수와 공휴일 횟수를 합산합니다.</div>
+<div class="service-detail-summary private-time-summary" id="privateTimeSummary"></div>
+<div class="note">※ 사비는 장기요양급여 월 한도액 및 본인부담금 계산에 포함되지 않으며, 본인부담금의 ‘사비 포함’을 선택하면 표시 금액에만 합산됩니다.</div>
+</div>
+<div class="card private-cost-card" id="privateCostCard">
+<h2>비급여 사비(미용·식비·간식비·기타)</h2><div style="text-align:right;margin:8px 0 12px;font-weight:700">미용·식비·간식비·기타 총액: <span id="privateOtherSubtotal">0원</span></div>
+<div class="private-other-actions" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin:10px 0">
+<label>항목 선택<select id="privateOtherSelect"><option value="미용">미용</option><option value="식비">식비</option><option value="간식비">간식비</option><option value="기타">기타</option></select></label>
+<button type="button" class="add" id="privateOtherAdd">+ 선택 항목 추가</button><button type="button" class="section-reset-btn" id="privateOtherReset">초기화</button></div>
+<div style="overflow-x:auto"><table id="privateOtherTable"><thead><tr><th>항목</th><th>1회 가격(원)</th><th>월 횟수</th><th class="money">월 금액</th><th>관리</th></tr></thead><tbody></tbody></table></div>
+<div class="note">※ 사비는 장기요양급여 월 한도액 및 본인부담금 계산에 포함되지 않으며, 본인부담금의 ‘사비 포함’을 선택하면 표시 금액에만 합산됩니다.</div>
+</div>
+
+
+</div>
+
+<section id="pageVisitBonus" class="page">
+<iframe id="visitBonusFrame" title="방문요양월별예상 가산금 자동계산 vs1"
+style="width:100%;height:2300px;border:0;border-radius:12px;background:#f4f7fa"
+srcdoc="&lt;!doctype html&gt;&lt;html lang=&#x27;ko&#x27;&gt;&lt;head&gt;&lt;meta charset=&#x27;utf-8&#x27;&gt;&lt;meta name=&#x27;viewport&#x27; content=&#x27;width=device-width,initial-scale=1&#x27;&gt;&lt;title&gt;방문요양월별예상 가산금 자동계산 vs1&lt;/title&gt;&lt;style&gt;body{font-family:Arial,&#x27;Malgun Gothic&#x27;,sans-serif;background:#f4f7fa;margin:0;color:#1f2937}.wrap{max-width:1200px;margin:auto;padding:22px}h1{text-align:center;color:#164e75}.notice{background:#eaf4fb;border:1px solid #b7d8ed;padding:14px;border-radius:10px;line-height:1.6}.tabs{display:flex;flex-wrap:wrap;gap:7px;margin:18px 0}.tabs button{border:1px solid #bbb;background:white;padding:9px 16px;border-radius:20px;cursor:pointer}.tabs button.on{background:#1f4e78;color:white}
+.tabs button.saved::after{content:&#x27; ✓&#x27;;color:#16803c;font-weight:900}
+.tabs button.on.saved::after{color:#fff}
+@media print{
+  body{background:#fff!important}
+  .wrap{max-width:none;padding:0}
+  .tabs,.actions{display:none!important}
+  .card{box-shadow:none!important;border:1px solid #ddd}
+  .annual{display:none!important}
+  .annual.show{display:block!important}
+  .notice{break-inside:avoid}
+}.card{background:white;padding:18px;border-radius:12px;box-shadow:0 2px 12px #0001}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.field label{display:block;font-weight:bold;margin-bottom:6px}.field input{width:100%;box-sizing:border-box;padding:11px;border:1px solid #ccc;border-radius:7px;background:#fff7d6;font-size:16px}.results{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}.result{background:#eaf3f8;padding:13px;border-radius:8px;text-align:center}.result b{display:block;font-size:20px;margin-top:6px;color:#0f4c75}.total{background:#dff2df}.rules{margin-top:20px;line-height:1.7}.rules table{border-collapse:collapse;width:100%}.rules th,.rules td{border:1px solid #ccc;padding:8px;text-align:center}.rules th{background:#e5efe1}.actions{text-align:center;margin:18px}.actions button{padding:10px 18px;margin:4px;border:0;border-radius:7px;background:#1f4e78;color:white;cursor:pointer}.annual{display:none;margin-top:20px}.annual.show{display:block}.annual table{width:100%;border-collapse:collapse}.annual th,.annual td{border:1px solid #cbd5e1;padding:9px;text-align:center}.annual th{background:#d9ead3}.annual tfoot td{font-weight:bold;background:#eaf3f8}.annual-total{font-size:24px;color:#0f4c75;font-weight:bold}.secondary{background:#4b5563!important}@media(max-width:800px){.grid,.results{grid-template-columns:1fr 1fr}}@media(max-width:520px){.grid,.results{grid-template-columns:1fr}}&lt;/style&gt;
+&lt;style&gt;
+/* 통합 프로그램 색상 통일 */
+body{background:#f4f6f9!important;color:#182033!important}
+.wrap{max-width:1200px}
+h1{color:#17324d!important}
+.hero{
+  background:linear-gradient(145deg,#173b5d,#285f85)!important;
+  color:#fff!important;border-radius:10px;padding:22px 20px;margin-bottom:12px
+}
+.hero h1{margin:0 0 8px!important;color:#fff!important;text-align:left!important;font-size:28px}
+.hero .hero-sub{font-size:13px;letter-spacing:.04em;opacity:.88;margin-bottom:7px;font-weight:700}
+.hero p{margin:0;font-size:15px;line-height:1.55;color:#fff!important}
+.notice{
+  background:#fff8e6!important;
+  border:1px solid #ead59a!important;
+  border-left:4px solid #d7a72b!important;
+  color:#5b4a22!important
+}
+.tabs button{
+  border-color:#c7d1dc!important;
+  color:#34495e!important;
+  background:#fff!important
+}
+.tabs button.on{
+  background:#17324d!important;
+  border-color:#17324d!important;
+  color:#fff!important
+}
+.card{
+  border:1px solid #d9dee7!important;
+  box-shadow:0 3px 12px rgba(23,50,77,.08)!important
+}
+.field input{
+  border-color:#cbd5df!important;
+  background:#f7fafc!important
+}
+.result{
+  background:#edf3f7!important;
+  border:1px solid #d6e0e7!important
+}
+.result b,.annual-total{color:#17324d!important}
+.result.total{
+  background:#e3edf3!important;
+  border-color:#bfd0dc!important
+}
+.rules th,.annual th{
+  background:#dfe9ef!important;
+  color:#263b4c!important
+}
+.actions button{
+  background:#17324d!important;
+  color:#fff!important
+}
+.actions button.secondary,.secondary{
+  background:#315f78!important
+}
+#clearAllBtn{
+  background:#7a3030!important
+}
+&lt;/style&gt;
+
+&lt;/head&gt;&lt;body&gt;&lt;div class=&#x27;wrap&#x27;&gt;
+&lt;div class=&#x27;hero&#x27;&gt;&lt;h1&gt;방문요양월별예상 가산금 자동계산 vs1 프로그램&lt;/h1&gt;&lt;div class=&#x27;hero-sub&#x27;&gt;2026년 고시 기준 방문요양 가산금 예상 계산 프로그램&lt;/div&gt;&lt;p&gt;
+수급자 수, 급여비용, 사회복지사 수와 급여관리 방문 수를 입력하면 월별 예상 가산금이 자동 계산됩니다.&lt;/p&gt;&lt;/div&gt;&lt;div class=&#x27;notice&#x27;&gt;
+※ 본 프로그램은 &lt;b&gt;고시 기준에 따른 예상금액 계산용&lt;/b&gt;으로, 실제 가산금은 공단 심사 및 세부 산정기준에 따라 차이가 발생할 수 있습니다.&lt;/div&gt;&lt;div class=&#x27;tabs&#x27; id=&#x27;tabs&#x27;&gt;&lt;/div&gt;&lt;div class=&#x27;card&#x27;&gt;&lt;h2 id=&#x27;monthTitle&#x27;&gt;&lt;/h2&gt;&lt;div class=&#x27;grid&#x27;&gt;&lt;div class=&#x27;field&#x27;&gt;&lt;label&gt;① 전체 수급자 수&lt;/label&gt;&lt;input id=&#x27;clients&#x27; type=&#x27;number&#x27; min=&#x27;0&#x27;&gt;&lt;/div&gt;&lt;div class=&#x27;field&#x27;&gt;&lt;label&gt;② 월 급여비용 총액(원) (공단+본인)&lt;/label&gt;&lt;input id=&#x27;cost&#x27; type=&#x27;text&#x27; inputmode=&#x27;numeric&#x27; autocomplete=&#x27;off&#x27; placeholder=&#x27;예: 90,000,000&#x27;&gt;&lt;/div&gt;&lt;div class=&#x27;field&#x27;&gt;&lt;label&gt;③ 실제 배치 사회복지사 수&lt;/label&gt;&lt;input id=&#x27;workers&#x27; type=&#x27;number&#x27; min=&#x27;0&#x27;&gt;&lt;/div&gt;&lt;div class=&#x27;field&#x27;&gt;&lt;label&gt;④ 급여관리 방문 수급자 수&lt;/label&gt;&lt;input id=&#x27;visited&#x27; type=&#x27;number&#x27; min=&#x27;0&#x27;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&#x27;results&#x27;&gt;&lt;div class=&#x27;result&#x27;&gt;가산기준금 (급여비용×85%)&lt;b id=&#x27;base&#x27;&gt;0원&lt;/b&gt;&lt;/div&gt;&lt;div class=&#x27;result&#x27;&gt;인정 가능 사회복지사 수&lt;b id=&#x27;allowed&#x27;&gt;0명&lt;/b&gt;&lt;/div&gt;&lt;div class=&#x27;result&#x27;&gt;기본 가산점수&lt;b id=&#x27;score&#x27;&gt;0점&lt;/b&gt;&lt;/div&gt;&lt;div class=&#x27;result&#x27;&gt;방문수행률&lt;b id=&#x27;rate&#x27;&gt;0%&lt;/b&gt;&lt;/div&gt;&lt;div class=&#x27;result&#x27;&gt;수행률 적용 가산점수&lt;b id=&#x27;applied&#x27;&gt;0점&lt;/b&gt;&lt;/div&gt;&lt;div class=&#x27;result total&#x27;&gt;해당 월 예상 가산금&lt;b id=&#x27;total&#x27;&gt;0원&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&#x27;actions&#x27;&gt;&lt;button onclick=&#x27;save()&#x27;&gt;현재 월 저장&lt;/button&gt;&lt;button onclick=&#x27;showAnnual()&#x27;&gt;연간 가산금 현황&lt;/button&gt;&lt;button type=&#x27;button&#x27; id=&#x27;clearMonthBtn&#x27;&gt;현재 월 초기화&lt;/button&gt;&lt;button type=&#x27;button&#x27; id=&#x27;clearAllBtn&#x27; style=&#x27;background:#7f1d1d&#x27;&gt;12개월 전체 초기화&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&#x27;card annual&#x27; id=&#x27;annualCard&#x27;&gt;&lt;h2&gt;연간 가산금 현황&lt;/h2&gt;&lt;div style=&#x27;overflow-x:auto&#x27;&gt;&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;월&lt;/th&gt;&lt;th&gt;수급자수&lt;/th&gt;&lt;th&gt;월 급여비용 총액(원)&lt;br&gt;(공단+본인)&lt;/th&gt;&lt;th&gt;사회복지사수&lt;/th&gt;&lt;th&gt;방문수&lt;/th&gt;&lt;th&gt;적용점수&lt;/th&gt;&lt;th&gt;월 예상 가산금&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody id=&#x27;annualBody&#x27;&gt;&lt;/tbody&gt;&lt;tfoot&gt;&lt;tr&gt;&lt;td&gt;연간 합계&lt;/td&gt;&lt;td id=&#x27;sumClients&#x27;&gt;0명&lt;/td&gt;&lt;td id=&#x27;sumCost&#x27;&gt;0원&lt;/td&gt;&lt;td&gt;-&lt;/td&gt;&lt;td id=&#x27;sumVisited&#x27;&gt;0명&lt;/td&gt;&lt;td&gt;-&lt;/td&gt;&lt;td class=&#x27;annual-total&#x27; id=&#x27;annualTotal&#x27;&gt;0원&lt;/td&gt;&lt;/tr&gt;&lt;/tfoot&gt;&lt;/table&gt;&lt;/div&gt;&lt;div class=&#x27;actions&#x27;&gt;&lt;button class=&#x27;secondary&#x27; onclick=&#x27;hideAnnual()&#x27;&gt;월별 계산으로 돌아가기&lt;/button&gt;&lt;/div&gt;&lt;p&gt;※ 월별 예상 가산금 합계를 연간 총 가산금으로 표시합니다. 각 월의 실제 청구·지급액은 공단 심사 결과 등에 따라 달라질 수 있습니다.&lt;/p&gt;&lt;/div&gt;&lt;div class=&#x27;card rules&#x27;&gt;&lt;h2&gt;고시 기준 및 계산방법&lt;/h2&gt;&lt;table&gt;&lt;tr&gt;&lt;th&gt;수급자 수&lt;/th&gt;&lt;th&gt;인정 사회복지사 상한&lt;/th&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;15~29명&lt;/td&gt;&lt;td&gt;1명&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;30~59명&lt;/td&gt;&lt;td&gt;2명&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;60~89명&lt;/td&gt;&lt;td&gt;3명&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;90~119명&lt;/td&gt;&lt;td&gt;4명&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;120~149명&lt;/td&gt;&lt;td&gt;5명&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;150~179명&lt;/td&gt;&lt;td&gt;6명&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;이후&lt;/td&gt;&lt;td&gt;30명 단위마다 1명 추가&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;p style=&#x27;padding:12px 14px;background:#fff7d6;border-left:4px solid #d6a700;border-radius:6px;&#x27;&gt;&lt;b&gt;※ 인정 사회복지사 상한 안내:&lt;/b&gt; 위 표의 인원은 수급자 수에 따라 &lt;b&gt;가산으로 인정받을 수 있는 최대 인원&lt;/b&gt;을 표시한 것입니다. 각 구간의 인원을 기관이 무조건 모두 채용해야 한다는 의미는 아닙니다. 다만, 법령상 의무배치 인력기준은 별도로 준수하여야 하며, 그 외 추가 인력은 기관의 수급자 수·업무량·운영상황 등을 고려하여 기관 상황에 맞게 배치·채용할 수 있습니다.&lt;/p&gt;&lt;p&gt;&lt;b&gt;가산점수:&lt;/b&gt; 첫 의무배치 사회복지사 1.8점, 추가 사회복지사 1인당 1.2점이며 가산인정 인원이 2명 이상이면 0.2점을 추가합니다.&lt;/p&gt;&lt;p&gt;&lt;b&gt;방문수행률:&lt;/b&gt; 전원 수행 100%, 90% 이상은 점수의 80%, 80% 이상은 50%, 80% 미만은 미산정으로 계산합니다. 수급자 30명 이상 기관이 사회복지사 1명만 배치하고 30명 이상 급여관리 업무를 수행한 경우에는 100% 적용 규칙을 반영했습니다.&lt;/p&gt;&lt;p&gt;&lt;b&gt;월 예상 가산금:&lt;/b&gt; (월 급여비용 총액(공단+본인) × 85%) × (수행률 적용 가산점수 ÷ 수급자 수) × 방문요양 서비스유형점수 1.8&lt;/p&gt;&lt;p&gt;※ 본 프로그램은 입력값을 기준으로 예상 가산금을 계산하는 도구입니다. 실제 청구·지급액은 공단 심사, 가산 대상 급여비용 및 고시상 세부 요건 충족 여부에 따라 달라질 수 있습니다.&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;&lt;script&gt;
+let month=1;const ids=[&#x27;clients&#x27;,&#x27;cost&#x27;,&#x27;workers&#x27;,&#x27;visited&#x27;];const tabs=document.getElementById(&#x27;tabs&#x27;);
+for(let i=1;i&lt;=12;i++){let b=document.createElement(&#x27;button&#x27;);b.textContent=i+&#x27;월&#x27;;b.onclick=()=&gt;load(i);b.id=&#x27;tab&#x27;+i;tabs.appendChild(b)}
+ids.forEach(id=&gt;document.getElementById(id).addEventListener(&#x27;input&#x27;,calc));document.getElementById(&#x27;cost&#x27;).addEventListener(&#x27;input&#x27;,function(){let raw=this.value.replace(/[^0-9]/g,&#x27;&#x27;);this.value=raw?Number(raw).toLocaleString(&#x27;ko-KR&#x27;):&#x27;&#x27;;});
+var memStore={};function stGet(){try{return localStorage.getItem(&#x27;careBonus2026&#x27;)}catch(e){return memStore.v||null}}function stSet(v){try{localStorage.setItem(&#x27;careBonus2026&#x27;,v)}catch(e){memStore.v=v}}function data(){try{return JSON.parse(stGet()||&#x27;{}&#x27;)||{}}catch(e){return {}}}
+function save(silent=false){
+ let d=data(), old=d[month]||{}, savedBefore=old._saved===true;
+ d[month]={};
+ ids.forEach(id=&gt;d[month][id]=document.getElementById(id).value);
+ d[month]._saved = silent ? savedBefore : true;
+ stSet(JSON.stringify(d));
+ updateSavedChecks();
+ if(!silent)alert(month+&#x27;월 자료를 저장했습니다.&#x27;);
+ if(document.getElementById(&#x27;annualCard&#x27;).classList.contains(&#x27;show&#x27;))renderAnnual();
+}
+function updateSavedChecks(){
+ let d=data();
+ for(let m=1;m&lt;=12;m++){
+   let b=document.getElementById(&#x27;tab&#x27;+m);
+   if(!b)continue;
+   let x=d[m]||{};
+   let hasSaved=x._saved===true;
+   b.classList.toggle(&#x27;saved&#x27;,hasSaved);
+   b.title=hasSaved ? m+&#x27;월 저장 완료&#x27; : m+&#x27;월 미저장&#x27;;
+ }
+}
+function load(m){month=m;document.querySelectorAll(&#x27;.tabs button&#x27;).forEach(x=&gt;x.classList.remove(&#x27;on&#x27;));document.getElementById(&#x27;tab&#x27;+m).classList.add(&#x27;on&#x27;);document.getElementById(&#x27;monthTitle&#x27;).textContent=m+&#x27;월 가산금 계산&#x27;;let d=data()[m]||{};ids.forEach(id=&gt;document.getElementById(id).value=d[id]||&#x27;&#x27;);if(document.getElementById(&#x27;cost&#x27;).value){let raw=document.getElementById(&#x27;cost&#x27;).value.replace(/,/g,&#x27;&#x27;);document.getElementById(&#x27;cost&#x27;).value=Number(raw).toLocaleString(&#x27;ko-KR&#x27;);}calc()}
+function n(id){return Number(String(document.getElementById(id).value).replace(/,/g,&#x27;&#x27;))||0}function fmt(x){return Math.round(x).toLocaleString(&#x27;ko-KR&#x27;)+&#x27;원&#x27;}
+function compute(c,cost,w,v){let base=Math.round(cost*.85/10)*10;let allow=c&lt;15?0:1+Math.floor((c-1)/30);let recognized=Math.min(w,allow);let score=recognized&lt;=0?0:(recognized===1?1.8:1.8+(recognized-1)*1.2+.2);let ratio=c?v/c:0;let factor=0;if(c&gt;=30&amp;&amp;w===1&amp;&amp;v&gt;=30)factor=1;else if(v&gt;=c&amp;&amp;c&gt;0)factor=1;else if(ratio&gt;=.9)factor=.8;else if(ratio&gt;=.8)factor=.5;let applied=score*factor;let total=c?Math.round((base*(applied/c)*1.8)/10)*10:0;return{base,allow,score,ratio,applied,total}}
+function calc(persist=true){let c=n(&#x27;clients&#x27;),cost=n(&#x27;cost&#x27;),w=n(&#x27;workers&#x27;),v=n(&#x27;visited&#x27;);let r=compute(c,cost,w,v);document.getElementById(&#x27;base&#x27;).textContent=fmt(r.base);document.getElementById(&#x27;allowed&#x27;).textContent=r.allow+&#x27;명&#x27;;document.getElementById(&#x27;score&#x27;).textContent=r.score.toFixed(1)+&#x27;점&#x27;;document.getElementById(&#x27;rate&#x27;).textContent=(r.ratio*100).toFixed(1)+&#x27;%&#x27;;document.getElementById(&#x27;applied&#x27;).textContent=r.applied.toFixed(2)+&#x27;점&#x27;;document.getElementById(&#x27;total&#x27;).textContent=fmt(r.total);if(persist)save(true)}
+function clearMonth(){
+  // 현재 월 데이터를 &#x27;삭제&#x27;만 하지 않고 빈 값으로 확실하게 덮어씁니다.
+  let d=data();
+  d[month]={clients:&#x27;&#x27;,cost:&#x27;&#x27;,workers:&#x27;&#x27;,visited:&#x27;&#x27;,_saved:false};
+  stSet(JSON.stringify(d));
+
+  // 화면 입력값 즉시 비우기
+  ids.forEach(id=&gt;{document.getElementById(id).value=&#x27;&#x27;;});
+
+  // 계산결과 즉시 0으로 표시 (calc/save를 거치지 않아 재저장되지 않음)
+  document.getElementById(&#x27;base&#x27;).textContent=&#x27;0원&#x27;;
+  document.getElementById(&#x27;allowed&#x27;).textContent=&#x27;0명&#x27;;
+  document.getElementById(&#x27;score&#x27;).textContent=&#x27;0.0점&#x27;;
+  document.getElementById(&#x27;rate&#x27;).textContent=&#x27;0.0%&#x27;;
+  document.getElementById(&#x27;applied&#x27;).textContent=&#x27;0.00점&#x27;;
+  document.getElementById(&#x27;total&#x27;).textContent=&#x27;0원&#x27;;
+
+  if(document.getElementById(&#x27;annualCard&#x27;).classList.contains(&#x27;show&#x27;))renderAnnual();
+
+  // 같은 월을 다시 읽어도 빈 값인지 즉시 확인
+  load(month);
+  updateSavedChecks();
+}
+function clearAllMonths(){
+  // confirm 창에 의존하지 않고 즉시 12개월 전체를 빈 데이터로 강제 덮어씁니다.
+  const blank = {};
+  for(let m=1;m&lt;=12;m++){
+    blank[m]={clients:&#x27;&#x27;,cost:&#x27;&#x27;,workers:&#x27;&#x27;,visited:&#x27;&#x27;,_saved:false};
+  }
+
+  try{
+    localStorage.setItem(&#x27;careBonus2026&#x27;, JSON.stringify(blank));
+  }catch(e){
+    alert(&#x27;브라우저 저장소에 접근하지 못했습니다.&#x27;);
+    return;
+  }
+
+  // 현재 화면 입력값 초기화
+  ids.forEach(id=&gt;{ document.getElementById(id).value=&#x27;&#x27;; });
+
+  // 현재 화면 결과값 초기화
+  document.getElementById(&#x27;base&#x27;).textContent=&#x27;0원&#x27;;
+  document.getElementById(&#x27;allowed&#x27;).textContent=&#x27;0명&#x27;;
+  document.getElementById(&#x27;score&#x27;).textContent=&#x27;0.0점&#x27;;
+  document.getElementById(&#x27;rate&#x27;).textContent=&#x27;0.0%&#x27;;
+  document.getElementById(&#x27;applied&#x27;).textContent=&#x27;0.00점&#x27;;
+  document.getElementById(&#x27;total&#x27;).textContent=&#x27;0원&#x27;;
+
+  // 12개월 저장 체크표시 즉시 해제
+  for(let m=1;m&lt;=12;m++){
+    const b=document.getElementById(&#x27;tab&#x27;+m);
+    if(b){
+      b.classList.remove(&#x27;saved&#x27;);
+      b.title=m+&#x27;월 미저장&#x27;;
+    }
+  }
+
+  // 연간 현황도 즉시 0으로 다시 작성
+  renderAnnual();
+
+  // 연간 현황이 닫혀 있었다면 그대로 닫힌 상태 유지
+  document.getElementById(&#x27;annualCard&#x27;).classList.remove(&#x27;show&#x27;);
+
+  // 현재 선택 월 제목/탭은 유지하고 입력값은 빈 상태로 유지
+  document.getElementById(&#x27;monthTitle&#x27;).textContent=month+&#x27;월 가산금 계산&#x27;;
+
+  alert(&#x27;1월부터 12월까지 모든 저장자료가 초기화되었습니다.&#x27;);
+}
+function renderAnnual(){let d=data(),body=document.getElementById(&#x27;annualBody&#x27;);body.innerHTML=&#x27;&#x27;;let sc=0,sco=0,sv=0,st=0;for(let m=1;m&lt;=12;m++){let x=d[m]||{},c=Number(x.clients)||0,cost=Number(String(x.cost||&#x27;&#x27;).replace(/,/g,&#x27;&#x27;))||0,w=Number(x.workers)||0,v=Number(x.visited)||0,r=compute(c,cost,w,v);sc+=c;sco+=cost;sv+=v;st+=r.total;let tr=document.createElement(&#x27;tr&#x27;);tr.innerHTML=`&lt;td&gt;&lt;button onclick=&quot;hideAnnual();load(${m})&quot; style=&quot;border:0;background:none;color:#164e75;font-weight:bold;cursor:pointer&quot;&gt;${m}월&lt;/button&gt;&lt;/td&gt;&lt;td&gt;${c.toLocaleString(&#x27;ko-KR&#x27;)}명&lt;/td&gt;&lt;td&gt;${fmt(cost)}&lt;/td&gt;&lt;td&gt;${w}명&lt;/td&gt;&lt;td&gt;${v}명&lt;/td&gt;&lt;td&gt;${r.applied.toFixed(2)}점&lt;/td&gt;&lt;td&gt;&lt;b&gt;${fmt(r.total)}&lt;/b&gt;&lt;/td&gt;`;body.appendChild(tr)}document.getElementById(&#x27;sumClients&#x27;).textContent=sc.toLocaleString(&#x27;ko-KR&#x27;)+&#x27;명&#x27;;document.getElementById(&#x27;sumCost&#x27;).textContent=fmt(sco);document.getElementById(&#x27;sumVisited&#x27;).textContent=sv.toLocaleString(&#x27;ko-KR&#x27;)+&#x27;명&#x27;;document.getElementById(&#x27;annualTotal&#x27;).textContent=fmt(st)}
+function showAnnual(){save(true);renderAnnual();document.getElementById(&#x27;annualCard&#x27;).classList.add(&#x27;show&#x27;);document.getElementById(&#x27;annualCard&#x27;).scrollIntoView({behavior:&#x27;smooth&#x27;,block:&#x27;start&#x27;})}
+function hideAnnual(){document.getElementById(&#x27;annualCard&#x27;).classList.remove(&#x27;show&#x27;);document.querySelector(&#x27;.card&#x27;).scrollIntoView({behavior:&#x27;smooth&#x27;,block:&#x27;start&#x27;})}
+document.getElementById(&#x27;clearAllBtn&#x27;).addEventListener(&#x27;click&#x27;,function(e){
+  e.preventDefault();
+  clearAllMonths();
+});
+document.getElementById(&#x27;clearMonthBtn&#x27;).addEventListener(&#x27;click&#x27;,function(e){
+  e.preventDefault();
+  clearMonth();
+});
+load(1);updateSavedChecks();
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;"></iframe>
+</section>
+<div id="pageBonus" class="page">
+<iframe id="bonusFrame" title="2026 주·야간보호센터 가산점수 자동계산기" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;!--
+  마음케어 플러스 - 주야간보호 가산분석기 Pro
+  Copyright (c) 2026 마음주간보호센터. All rights reserved.
+  Document ID: MCP-DCC-2026-008
+  Unauthorized reproduction, redistribution, resale, or removal of this notice is prohibited.
+--&gt;
+&lt;html lang=&quot;ko&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;UTF-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;
+&lt;title&gt;2026 주야간보호센터 가산점수 자동계산기 V1&lt;/title&gt;
+&lt;style&gt;
+body{margin:0;background:#f4f6f9;font-family:&quot;Malgun Gothic&quot;,Arial,sans-serif;color:#182033}
+header{background:linear-gradient(135deg,#17324d,#315f78);color:#fff;padding:24px}header h1{margin:0 0 6px;font-size:24px}
+.wrap{max-width:1200px;margin:18px auto;padding:0 14px 38px}
+.card{background:#fff;border:1px solid #ccd5df;border-radius:12px;padding:16px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+label{display:block;font-size:12px;color:#596579;margin-bottom:5px}
+input,select{width:100%;padding:9px;border:1px solid #bfc9d5;border-radius:7px;font-size:14px}
+button{padding:10px 16px;border:0;border-radius:7px;background:#2457d6;color:white;font-weight:bold;cursor:pointer}
+.actions{text-align:right;margin-bottom:10px}.actions button+button{margin-left:6px}
+h2{font-size:17px;margin:0 0 12px}h3{font-size:14px;margin:17px 0 8px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{border:1px solid #cbd4df;padding:8px;text-align:center}th{background:#eaf0f6}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.sum{background:#f3f7ff;border:1px solid #d5e1f6;border-radius:10px;padding:12px}.sum b{display:block;font-size:24px;margin-top:4px}
+.small{font-size:12px;color:#68758a}.ok{color:#087f5b;font-weight:bold}.bad{color:#c92a2a;font-weight:bold}.warn{color:#e67700;font-weight:bold}
+.note{background:#fff6dc;border-left:4px solid #e5a100;padding:11px 13px;border-radius:6px;font-size:13px;line-height:1.7}
+.brand-sub{font-size:12px;letter-spacing:1.8px;opacity:.8;margin-top:5px}.copyright-box{background:#f8fafc;border:1px solid #d9e1e8;border-radius:10px;padding:13px;font-size:12px;line-height:1.7}
+.rule-tabs{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.rule-tabs button{background:#e9f0f6;color:#29465b}
+.rule-tabs button.active{background:#315f78;color:#fff}
+.rule-panel{display:none}
+.rule-panel.active{display:block}
+.rule-table td:first-child{font-weight:bold;background:#f6f9fb}
+.rule-badge{display:inline-block;padding:3px 8px;border-radius:999px;background:#eef5ff;color:#2457d6;font-size:11px;font-weight:bold}
+.rule-warning{margin-top:12px;padding:11px;border-radius:8px;background:#fff7e6;border:1px solid #f2d8a7;font-size:12px;line-height:1.7}.license-btn{background:#586b7d}.auto{display:inline-block;background:#e7f5ff;color:#1864ab;border-radius:999px;padding:4px 9px;font-size:12px;margin-left:6px}
+@media(max-width:800px){.grid,.summary{grid-template-columns:1fr 1fr}}
+@media print{body{background:#fff}.actions,button{display:none}.card{break-inside:avoid}}
+
+:root{--navy:#31536f;--line:#bdc8d3;--soft:#eef3f7;--blue:#e8f1fb;--orange:#ff5a1f}
+header{padding:15px 22px;background:#40566d}
+header h1{font-size:21px}.wrap{max-width:1320px;margin:10px auto;padding:0 10px 30px}
+.card{border-radius:4px;padding:12px;margin-bottom:10px;box-shadow:none}
+.actions{position:sticky;top:0;z-index:20;background:#f4f6f9;padding:7px 0;margin:0 0 8px}
+.actions button{padding:7px 11px;border-radius:3px;font-size:12px}
+.grid{grid-template-columns:repeat(4,minmax(150px,1fr));gap:7px}
+label{font-size:12px;margin-bottom:3px}input,select{padding:7px;border-radius:2px;background:#fff}
+h2{font-size:15px;color:#233f58;border-left:4px solid #4279a8;padding-left:7px;margin-bottom:9px}
+h3{font-size:13px;color:#244963;margin:12px 0 5px}
+table{font-size:12px}th,td{padding:6px 5px}th{background:#dfe8ef;color:#253b4d}
+.table-scroll{overflow-x:auto}
+.dashboard{display:grid;grid-template-columns:1.2fr 2fr;gap:10px;margin-bottom:10px}
+.final-score{background:#fff;border:1px solid #9eabb8;padding:14px;text-align:center;display:flex;flex-direction:column;justify-content:center}
+.final-score .title{font-size:13px;color:#596979}.final-score .value{font-size:43px;font-weight:800;color:#ef4d17;line-height:1.1}
+.final-score .unit{font-size:13px;color:#677}
+.status-board{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #aebac5}
+.status-item{padding:10px;border-right:1px solid #c8d0d8;border-bottom:1px solid #c8d0d8;background:#fff}
+.status-item:nth-child(3n){border-right:0}.status-item:nth-last-child(-n+3){border-bottom:0}
+.status-item span{display:block;font-size:11px;color:#607080}.status-item b{font-size:20px;margin-top:3px;display:block}
+.summary{display:none}
+.compact-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.view-toggle{background:#4f687e!important}
+.detail-block{display:none}
+body.detail-mode .detail-block{display:block}
+body.detail-mode .summary{display:grid}
+body.detail-mode .dashboard{display:none}
+.quick-table tr.highlight td{background:#fff1e8}
+.quick-table td:first-child,.quick-table th:first-child{text-align:left;padding-left:10px}
+.section-sub{font-size:11px;color:#667786;margin:-4px 0 8px 11px}
+.result-badge{display:inline-block;padding:2px 7px;border-radius:10px;background:#e8f6ef;color:#087f5b;font-weight:bold}
+.result-badge.no{background:#fff0f0;color:#c92a2a}
+@media(max-width:850px){.dashboard{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,1fr)}.status-board{grid-template-columns:repeat(2,1fr)}.status-item:nth-child(3n){border-right:1px solid #c8d0d8}}
+@media print{.actions,.view-toggle{display:none!important}.detail-block{display:block!important}.dashboard{display:grid!important}.summary{display:none!important}}
+
+
+:root{
+ --mcp-deep:#16324f;
+ --mcp-blue:#2f6690;
+ --mcp-sky:#d9ecf5;
+ --mcp-mint:#e8f5f1;
+ --mcp-cream:#fffaf0;
+ --mcp-coral:#ef6f6c;
+ --mcp-gold:#e9b949;
+ --mcp-ink:#243447;
+}
+body{background:linear-gradient(180deg,#eef5f8 0,#f8fafb 280px,#f5f7f9 100%)}
+header{background:linear-gradient(135deg,var(--mcp-deep),var(--mcp-blue));border-bottom:4px solid var(--mcp-gold)}
+header h1{letter-spacing:-.4px}
+.brand-sub{font-size:12px;opacity:.9;margin-top:4px}
+.mcp-overview{display:grid;grid-template-columns:1.1fr 2.2fr;gap:12px;margin-bottom:12px}
+.mcp-total{
+ background:linear-gradient(145deg,#173b5d,#285f85);
+ color:#fff;border-radius:12px;padding:18px;position:relative;overflow:hidden;
+ box-shadow:0 8px 20px rgba(22,50,79,.16)
+}
+.mcp-total:after{content:&quot;&quot;;position:absolute;width:150px;height:150px;border-radius:50%;right:-55px;bottom:-75px;background:rgba(255,255,255,.08)}
+.mcp-total .eyebrow{font-size:12px;opacity:.82}.mcp-total .score{font-size:48px;font-weight:850;line-height:1;margin:10px 0 5px}
+.mcp-total .caption{font-size:12px;opacity:.9}
+.mcp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mcp-metric{background:#fff;border:1px solid #d8e2e8;border-radius:10px;padding:11px;min-height:68px}
+.mcp-metric .label{font-size:11px;color:#647789}.mcp-metric .num{font-size:22px;font-weight:800;color:var(--mcp-deep);margin-top:5px}
+.mcp-metric.emph{background:var(--mcp-cream);border-color:#f2d48a}
+.mcp-status-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0 4px}
+.mcp-status{background:#fff;border:1px solid #cfdbe2;border-radius:8px;padding:9px;text-align:center}
+.mcp-status .name{font-size:11px;color:#617586}.mcp-status .val{font-size:17px;font-weight:800;margin-top:4px;color:#20384f}
+.mcp-status.good{background:var(--mcp-mint)}.mcp-status.warn{background:#fff5e6}.mcp-status.bad{background:#fff0f0}
+.mcp-panel-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.mcp-panel-title .tag{font-size:10px;background:#e6eef5;color:#315b79;padding:3px 7px;border-radius:999px}
+table.mcp-table th{background:#274d69;color:#fff}
+table.mcp-table tbody tr:nth-child(even) td{background:#f7fafc}
+table.mcp-table td strong{color:#173b5d}
+.copyright-box{
+ background:#132b42!important;color:#e8f0f5!important;border-radius:10px!important;
+ border-left:5px solid var(--mcp-gold)!important;line-height:1.65!important
+}
+.copyright-box b{color:#fff}
+.legal-note{margin-top:9px;padding:9px;border:1px dashed #8aa1b2;border-radius:7px;background:#f6fafc;font-size:11px;color:#52697b}
+@media(max-width:900px){
+ .mcp-overview{grid-template-columns:1fr}.mcp-grid{grid-template-columns:repeat(2,1fr)}
+ .mcp-status-strip{grid-template-columns:repeat(2,1fr)}
+}
+
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;header&gt;&lt;h1&gt;2026 주·야간보호센터 가산점수 자동계산기 V1 &lt;span class=&quot;auto&quot;&gt;실시간 자동계산&lt;/span&gt;&lt;/h1&gt;&lt;div class=&#x27;brand-sub&#x27;&gt;주·야간보호기관 인력 및 서비스 가산 분석 도구&lt;/div&gt;
+&lt;div class=&quot;brand-sub&quot;&gt;2026 주·야간보호센터 가산점수 자동계산기 · V1&lt;/div&gt;
+&lt;div style=&quot;margin-top:8px&quot;&gt;주야간보호기관의 인력배치와 맞춤형서비스 가산을 한 화면에서 분석하는 독립형 업무지원 도구입니다.&lt;/div&gt;&lt;/header&gt;
+&lt;div class=&quot;claim-disclaimer&quot; style=&quot;margin:12px 0;padding:10px 12px;background:#fff8e6;border:1px solid #ead59a;border-left:4px solid #d7a72b;border-radius:7px;font-size:13px;line-height:1.6;color:#5b4a22;&quot;&gt;※ 본 프로그램의 계산 결과는 예상값이며, 실제 공단 청구 및 지급 결과와 다를 수 있습니다.&lt;/div&gt;
+&lt;div class=&quot;wrap&quot;&gt;
+&lt;div class=&quot;actions&quot;&gt;
+&lt;button type=&quot;button&quot; class=&quot;license-btn&quot; onclick=&quot;toggleNotice()&quot;&gt;고시 기준 보기&lt;/button&gt;
+&lt;button type=&quot;button&quot; class=&quot;license-btn&quot; onclick=&quot;toggleLicense()&quot;&gt;저작권·이용조건&lt;/button&gt;
+&lt;button type=&quot;button&quot; class=&quot;view-toggle&quot; onclick=&quot;toggleView()&quot; id=&quot;viewBtn&quot;&gt;상세보기&lt;/button&gt;
+&lt;button type=&quot;button&quot; onclick=&quot;resetForm()&quot;&gt;전체 초기화&lt;/button&gt;
+&lt;button type=&quot;button&quot; onclick=&quot;window.print()&quot;&gt;인쇄·PDF&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;section id=&quot;noticePanel&quot; class=&quot;card&quot; style=&quot;display:none&quot;&gt;
+&lt;h2&gt;고시상 가산점수 기준 안내&lt;/h2&gt;
+&lt;div class=&quot;small&quot; style=&quot;margin-bottom:12px&quot;&gt;
+「장기요양급여 제공기준 및 급여비용 산정방법 등에 관한 고시」의 주·야간보호 관련 기준을 실무용으로 정리한 화면입니다.
+&lt;/div&gt;
+&lt;div class=&quot;rule-warning&quot; style=&quot;margin-bottom:12px&quot;&gt;
+&lt;strong&gt;간호인력 가산 구분&lt;/strong&gt;&lt;br&gt;
+① &lt;strong&gt;간호사배치 가산 0.6점&lt;/strong&gt;: 간호사에게만 적용하며 간호조무사는 제외됩니다.&lt;br&gt;
+② &lt;strong&gt;인력추가배치 가산 1.2점&lt;/strong&gt;: 간호사와 간호조무사 모두 대상이 될 수 있으나, 의무인원을 초과하고 합산 1인당 이용자 수가 19명 미만이어야 합니다.
+&lt;/div&gt;
+
+&lt;div class=&quot;rule-tabs&quot;&gt;
+&lt;button type=&quot;button&quot; class=&quot;active&quot; onclick=&quot;showRule(&#x27;staff&#x27;,this)&quot;&gt;인력 추가배치&lt;/button&gt;
+&lt;button type=&quot;button&quot; onclick=&quot;showRule(&#x27;nurse&#x27;,this)&quot;&gt;간호사 배치&lt;/button&gt;
+&lt;button type=&quot;button&quot; onclick=&quot;showRule(&#x27;program&#x27;,this)&quot;&gt;맞춤형서비스&lt;/button&gt;
+&lt;button type=&quot;button&quot; onclick=&quot;showRule(&#x27;common&#x27;,this)&quot;&gt;공통 유의사항&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;div id=&quot;rule-staff&quot; class=&quot;rule-panel active&quot;&gt;
+&lt;table class=&quot;rule-table&quot;&gt;
+&lt;thead&gt;&lt;tr&gt;&lt;th&gt;직종&lt;/th&gt;&lt;th&gt;가산점수&lt;/th&gt;&lt;th&gt;주요 인정기준&lt;/th&gt;&lt;th&gt;고시 근거&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;요양보호사&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;rule-badge&quot;&gt;추가 1명당 1.2점&lt;/span&gt;&lt;/td&gt;&lt;td&gt;일반형은 요양보호사 1인당 이용자 수가 6.4명 미만인 경우. 치매전담형은 3.9명 미만 기준 적용.&lt;/td&gt;&lt;td&gt;제54조·제55조 관련&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;간호사·간호조무사&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;rule-badge&quot;&gt;인력추가배치 1명당 1.2점&lt;/span&gt;&lt;/td&gt;&lt;td&gt;간호사배치 가산과는 별도 항목입니다. 법정 의무인원을 충족한 후 추가 배치된 인정인력으로서 간호사와 간호조무사의 합산 인원 기준 1인당 이용자 수가 19명 미만인 경우.&lt;/td&gt;&lt;td&gt;제54조·제55조 관련&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;사회복지사&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;rule-badge&quot;&gt;추가 1명당 1.4점&lt;/span&gt;&lt;/td&gt;&lt;td&gt;법정 의무인원을 초과하여 추가 배치된 인정근무인원.&lt;/td&gt;&lt;td&gt;제54조·제55조 관련&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;물리치료사·작업치료사&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;rule-badge&quot;&gt;추가 1명당 1.4점&lt;/span&gt;&lt;/td&gt;&lt;td&gt;간호·재활 통합 의무인원을 충족한 후 추가로 배치된 인정근무인원.&lt;/td&gt;&lt;td&gt;제54조·제55조 관련&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;조리원&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;rule-badge&quot;&gt;고시 세부요건 확인&lt;/span&gt;&lt;/td&gt;&lt;td&gt;직접조리 여부, 의무배치 및 별도 산정요건에 따라 판단. 현재 계산기에서는 자동 점수 산정을 제외하고 있습니다.&lt;/td&gt;&lt;td&gt;시설·인력배치 관련 조항&lt;/td&gt;&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+
+&lt;div id=&quot;rule-nurse&quot; class=&quot;rule-panel&quot;&gt;
+&lt;table class=&quot;rule-table&quot;&gt;
+&lt;thead&gt;&lt;tr&gt;&lt;th&gt;가산 항목&lt;/th&gt;&lt;th&gt;가산점수&lt;/th&gt;&lt;th&gt;적용 내용&lt;/th&gt;&lt;th&gt;고시 근거&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;간호사 배치&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;rule-badge&quot;&gt;간호사만 1명당 0.6점&lt;/span&gt;&lt;/td&gt;&lt;td&gt;간호사로 인정되는 월 근무인원에 대해서만 적용합니다. 간호조무사는 이 0.6점 가산 대상이 아닙니다. 인력추가배치 가산과 구분하여 산정합니다.&lt;/td&gt;&lt;td&gt;제55조 관련&lt;/td&gt;&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;div class=&quot;rule-warning&quot;&gt;
+간호사를 입력했다고 무조건 인정되는 것은 아닙니다. 월 기준근무시간, 겸직, 휴가·휴직, 퇴사특례 및 공단의 인정근무인원 산정기준을 충족해야 합니다.
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div id=&quot;rule-program&quot; class=&quot;rule-panel&quot;&gt;
+&lt;table class=&quot;rule-table&quot;&gt;
+&lt;thead&gt;&lt;tr&gt;&lt;th&gt;제공 횟수&lt;/th&gt;&lt;th&gt;가산점수&lt;/th&gt;&lt;th&gt;필수 조건&lt;/th&gt;&lt;th&gt;고시 근거&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;주 4회 이상 또는 월 16회 이상&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;rule-badge&quot;&gt;0.5점&lt;/span&gt;&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;외부강사 또는 해당 자격을 갖춘 제공자, 회당 60분, 주 2회 이상 제공 시 2종류 이상의 프로그램 등 고시 요건 충족 필요.&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;제62조 관련&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;주 2~3회 또는 월 8회 이상&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;rule-badge&quot;&gt;0.25점&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;기준 미달&lt;/td&gt;&lt;td&gt;0점&lt;/td&gt;&lt;td&gt;횟수 또는 운영요건 미충족 시 미산정.&lt;/td&gt;&lt;td&gt;제62조 관련&lt;/td&gt;&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;div class=&quot;rule-warning&quot;&gt;
+치매전담형 주·야간보호는 맞춤형서비스 가산 적용 여부가 일반형과 다를 수 있으므로 급여유형을 반드시 확인해야 합니다.
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div id=&quot;rule-common&quot; class=&quot;rule-panel&quot;&gt;
+&lt;table class=&quot;rule-table&quot;&gt;
+&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;인정근무인원&lt;/td&gt;&lt;td&gt;단순 채용인원이 아니라 고시상 근무시간과 근무형태를 충족하여 인정되는 인원을 사용해야 합니다.&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;의무인원 우선 차감&lt;/td&gt;&lt;td&gt;법정 의무배치 인력을 먼저 충족한 뒤 남는 인력만 추가배치로 판단합니다.&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;정원초과·인력배치 위반&lt;/td&gt;&lt;td&gt;정원초과 또는 인력배치 기준 위반이 있는 경우 가산 적용 제한이나 감액이 발생할 수 있습니다.&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;최종 확인&lt;/td&gt;&lt;td&gt;본 화면은 실무 확인용 요약이며, 실제 청구 전에는 해당 월의 최신 고시·공단 전산 산정결과와 대조해야 합니다.&lt;/td&gt;&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+&lt;/section&gt;
+
+&lt;section id=&quot;licensePanel&quot; class=&quot;card&quot; style=&quot;display:none&quot;&gt;
+&lt;h2&gt;저작권 및 이용조건&lt;/h2&gt;
+&lt;div class=&quot;copyright-box&quot;&gt;
+&lt;b&gt;2026 주·야간보호센터 가산점수 자동계산기 V1&lt;/b&gt;&lt;br&gt;
+© 2026 마음케어플러스. All Rights Reserved.&lt;br&gt;&lt;br&gt;
+본 프로그램은 「장기요양급여 제공기준 및 급여비용 산정방법 등에 관한 고시」의 공개된 산정기준을 바탕으로
+마음케어플러스가 자체적으로 기획·설계한 독립 프로그램입니다.&lt;br&gt;
+프로그램의 화면 구성, 정보 배열, 계산 흐름, 설명문, HTML·CSS·JavaScript 코드 및 관련 문서는 저작권법의 보호를 받습니다.&lt;br&gt;
+권리자의 사전 서면 동의 없이 프로그램의 전부 또는 일부를 복제, 배포, 판매, 임대, 변형하거나
+다른 서비스에 탑재하는 행위를 금합니다.&lt;br&gt;&lt;br&gt;
+고시·법령 자체와 공공기관의 원문 자료에 대한 권리를 주장하지 않으며,
+본 프로그램은 국민건강보험공단 또는 제3자 민간 서비스와 제휴하거나 그 화면을 복제한 제품이 아닙니다.
+&lt;/div&gt;
+&lt;div class=&quot;legal-note&quot;&gt;
+&lt;strong&gt;사용 안내:&lt;/strong&gt; 본 계산 결과는 입력값을 바탕으로 한 업무 참고용 분석입니다.
+실제 가산 인정 여부와 청구 결과는 해당 월의 공단 신고자료, 인정근무시간, 인력배치기준,
+정원초과·휴업·감산 사유 및 최신 고시에 따라 달라질 수 있으므로 최종 청구 전 공식 자료를 확인해야 합니다.
+&lt;/div&gt;
+&lt;/section&gt;
+
+&lt;section class=&quot;card result-section&quot;&gt;
+&lt;div class=&quot;compact-title&quot;&gt;
+&lt;h2&gt;가산현황 요약&lt;/h2&gt;
+&lt;span class=&quot;small&quot;&gt;입력 즉시 자동 계산&lt;/span&gt;
+&lt;/div&gt;
+&lt;div class=&quot;mcp-overview&quot;&gt;
+ &lt;div class=&quot;mcp-total&quot;&gt;
+  &lt;div class=&quot;eyebrow&quot;&gt;이번 입력 기준 최종 인정점수&lt;/div&gt;
+  &lt;div class=&quot;score&quot;&gt;&lt;span id=&quot;grandDash&quot;&gt;0.00&lt;/span&gt;&lt;small style=&quot;font-size:16px;font-weight:600&quot;&gt; 점&lt;/small&gt;&lt;/div&gt;
+  &lt;div class=&quot;caption&quot;&gt;인력가산 상한 적용 후 별도 가산을 합산한 결과&lt;/div&gt;
+ &lt;/div&gt;
+ &lt;div&gt;
+  &lt;div class=&quot;mcp-grid&quot;&gt;
+   &lt;div class=&quot;mcp-metric&quot;&gt;&lt;div class=&quot;label&quot;&gt;직종별 인력가산 합계&lt;/div&gt;&lt;div class=&quot;num&quot; id=&quot;staffRawDash&quot;&gt;0.00&lt;/div&gt;&lt;/div&gt;
+   &lt;div class=&quot;mcp-metric&quot;&gt;&lt;div class=&quot;label&quot;&gt;입소자수 기본상한&lt;/div&gt;&lt;div class=&quot;num&quot; id=&quot;baseCapDash&quot;&gt;0.00&lt;/div&gt;&lt;/div&gt;
+   &lt;div class=&quot;mcp-metric&quot;&gt;&lt;div class=&quot;label&quot;&gt;요양보호사 추가상한&lt;/div&gt;&lt;div class=&quot;num&quot; id=&quot;extraCapDash&quot;&gt;0.00&lt;/div&gt;&lt;/div&gt;
+   &lt;div class=&quot;mcp-metric emph&quot;&gt;&lt;div class=&quot;label&quot;&gt;최종 인정 인력가산&lt;/div&gt;&lt;div class=&quot;num&quot; id=&quot;staffDash&quot;&gt;0.00&lt;/div&gt;&lt;/div&gt;
+   &lt;div class=&quot;mcp-metric&quot;&gt;&lt;div class=&quot;label&quot;&gt;간호사배치 별도가산&lt;/div&gt;&lt;div class=&quot;num&quot; id=&quot;nurseDash&quot;&gt;0.00&lt;/div&gt;&lt;/div&gt;
+   &lt;div class=&quot;mcp-metric&quot;&gt;&lt;div class=&quot;label&quot;&gt;맞춤형서비스 별도가산&lt;/div&gt;&lt;div class=&quot;num&quot; id=&quot;progDash&quot;&gt;0.00&lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+ &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class=&quot;mcp-status-strip&quot; id=&quot;statusStrip&quot;&gt;
+ &lt;div class=&quot;mcp-status&quot;&gt;&lt;div class=&quot;name&quot;&gt;필수인력&lt;/div&gt;&lt;div class=&quot;val&quot; id=&quot;statusMandatory&quot;&gt;-&lt;/div&gt;&lt;/div&gt;
+ &lt;div class=&quot;mcp-status&quot;&gt;&lt;div class=&quot;name&quot;&gt;인력추가배치&lt;/div&gt;&lt;div class=&quot;val&quot; id=&quot;statusStaff&quot;&gt;0.00&lt;/div&gt;&lt;/div&gt;
+ &lt;div class=&quot;mcp-status&quot;&gt;&lt;div class=&quot;name&quot;&gt;간호사배치&lt;/div&gt;&lt;div class=&quot;val&quot; id=&quot;statusNurse&quot;&gt;0.00&lt;/div&gt;&lt;/div&gt;
+ &lt;div class=&quot;mcp-status&quot;&gt;&lt;div class=&quot;name&quot;&gt;맞춤형서비스&lt;/div&gt;&lt;div class=&quot;val&quot; id=&quot;statusProg&quot;&gt;0.00&lt;/div&gt;&lt;/div&gt;
+ &lt;div class=&quot;mcp-status&quot;&gt;&lt;div class=&quot;name&quot;&gt;최종총점&lt;/div&gt;&lt;div class=&quot;val&quot; id=&quot;statusGrand&quot;&gt;0.00&lt;/div&gt;&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class=&#x27;mcp-panel-title&#x27;&gt;&lt;h3&gt;가산현황 한눈에 보기&lt;/h3&gt;&lt;span class=&#x27;tag&#x27;&gt;마음케어 플러스 전용 화면&lt;/span&gt;&lt;/div&gt;
+&lt;div class=&quot;table-scroll&quot;&gt;
+&lt;table class=&quot;quick-table mcp-table&quot;&gt;
+&lt;thead&gt;&lt;tr&gt;&lt;th&gt;구분&lt;/th&gt;&lt;th&gt;산정점수&lt;/th&gt;&lt;th&gt;인정점수&lt;/th&gt;&lt;th&gt;적용상태&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+&lt;tbody id=&quot;quickRows&quot;&gt;&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+
+&lt;div class=&quot;detail-block&quot;&gt;
+&lt;div class=&quot;summary&quot;&gt;
+&lt;div class=&quot;sum&quot;&gt;&lt;span class=&quot;small&quot;&gt;직종별 인력가산 합계&lt;/span&gt;&lt;b id=&quot;staffRaw&quot;&gt;0.00&lt;/b&gt;&lt;/div&gt;
+&lt;div class=&quot;sum&quot;&gt;&lt;span class=&quot;small&quot;&gt;기본 인정상한&lt;/span&gt;&lt;b id=&quot;baseCap&quot;&gt;0.00&lt;/b&gt;&lt;/div&gt;
+&lt;div class=&quot;sum&quot;&gt;&lt;span class=&quot;small&quot;&gt;추가산정 상한&lt;/span&gt;&lt;b id=&quot;extraCap&quot;&gt;0.00&lt;/b&gt;&lt;/div&gt;
+&lt;div class=&quot;sum&quot;&gt;&lt;span class=&quot;small&quot;&gt;상한 적용 인력가산&lt;/span&gt;&lt;b id=&quot;staffSum&quot;&gt;0.00&lt;/b&gt;&lt;/div&gt;
+&lt;div class=&quot;sum&quot;&gt;&lt;span class=&quot;small&quot;&gt;간호사배치 전용 가산&lt;/span&gt;&lt;b id=&quot;nurseSum&quot;&gt;0.00&lt;/b&gt;&lt;/div&gt;
+&lt;div class=&quot;sum&quot;&gt;&lt;span class=&quot;small&quot;&gt;맞춤형서비스&lt;/span&gt;&lt;b id=&quot;progSum&quot;&gt;0.00&lt;/b&gt;&lt;/div&gt;
+&lt;div class=&quot;sum&quot;&gt;&lt;span class=&quot;small&quot;&gt;최종 가산총점&lt;/span&gt;&lt;b id=&quot;grand&quot;&gt;0.00&lt;/b&gt;&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;h3&gt;가산점수 산정 순서&lt;/h3&gt;
+&lt;div class=&quot;table-scroll&quot;&gt;&lt;table&gt;
+&lt;thead&gt;&lt;tr&gt;&lt;th&gt;단계&lt;/th&gt;&lt;th&gt;산정 내용&lt;/th&gt;&lt;th&gt;점수&lt;/th&gt;&lt;th&gt;적용 여부&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+&lt;tbody id=&quot;sequenceRows&quot;&gt;&lt;/tbody&gt;
+&lt;/table&gt;&lt;/div&gt;
+
+&lt;h3&gt;입소자수별 가산점수 인정범위&lt;/h3&gt;
+&lt;div class=&quot;table-scroll&quot;&gt;&lt;table&gt;
+&lt;thead&gt;&lt;tr&gt;&lt;th&gt;이용자수 구간&lt;/th&gt;&lt;th&gt;기본 인정상한&lt;/th&gt;&lt;th&gt;요양보호사 추가배치&lt;/th&gt;&lt;th&gt;추가산정&lt;/th&gt;&lt;th&gt;최종 인정상한&lt;/th&gt;&lt;th&gt;판정&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+&lt;tbody id=&quot;capRows&quot;&gt;&lt;/tbody&gt;
+&lt;/table&gt;&lt;/div&gt;
+
+&lt;h3&gt;인력 추가배치 상세&lt;/h3&gt;
+&lt;div class=&quot;table-scroll&quot;&gt;&lt;table&gt;
+&lt;thead&gt;&lt;tr&gt;&lt;th&gt;직종&lt;/th&gt;&lt;th&gt;의무인원&lt;/th&gt;&lt;th&gt;근무인원&lt;/th&gt;&lt;th&gt;추가인원&lt;/th&gt;&lt;th&gt;1인당 이용자&lt;br&gt;&lt;span class=&#x27;small&#x27;&gt;간호계열 통합&lt;/span&gt;&lt;/th&gt;&lt;th&gt;1인당 점수&lt;/th&gt;&lt;th&gt;가산점수&lt;/th&gt;&lt;th&gt;판정&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+&lt;tbody id=&quot;staffRows&quot;&gt;&lt;/tbody&gt;
+&lt;/table&gt;&lt;/div&gt;
+
+&lt;h3&gt;기타 가산 상세&lt;/h3&gt;
+&lt;div class=&quot;table-scroll&quot;&gt;&lt;table&gt;
+&lt;thead&gt;&lt;tr&gt;&lt;th&gt;구분&lt;/th&gt;&lt;th&gt;산정내용&lt;/th&gt;&lt;th&gt;가산점수&lt;/th&gt;&lt;th&gt;판정&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+&lt;tbody id=&quot;otherRows&quot;&gt;&lt;/tbody&gt;
+&lt;/table&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;/section&gt;
+
+&lt;section class=&quot;card&quot;&gt;
+&lt;h2&gt;기본정보&lt;/h2&gt;&lt;div class=&#x27;section-sub&#x27;&gt;평균 이용인원과 기관 운영기준을 입력합니다.&lt;/div&gt;
+&lt;div class=&quot;grid&quot;&gt;
+&lt;div&gt;&lt;label&gt;월 평균 이용자 수&lt;/label&gt;&lt;input id=&quot;u&quot; type=&quot;number&quot; step=&quot;0.01&quot; value=&quot;24&quot;&gt;&lt;/div&gt;
+&lt;div&gt;&lt;label&gt;정원&lt;/label&gt;&lt;input id=&quot;cap&quot; type=&quot;number&quot; value=&quot;40&quot;&gt;&lt;/div&gt;
+&lt;div&gt;&lt;label&gt;급여유형&lt;/label&gt;&lt;select id=&quot;type&quot;&gt;&lt;option value=&quot;normal&quot;&gt;일반 주야간보호&lt;/option&gt;&lt;option value=&quot;dementia&quot;&gt;치매전담형&lt;/option&gt;&lt;/select&gt;&lt;/div&gt;
+&lt;div&gt;&lt;label&gt;급여제공일수&lt;/label&gt;&lt;input id=&quot;days&quot; type=&quot;number&quot; value=&quot;30&quot;&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;/section&gt;
+
+&lt;section class=&quot;card&quot;&gt;
+&lt;h2&gt;인력 추가배치 입력&lt;/h2&gt;&lt;div class=&#x27;section-sub&#x27;&gt;실제 공단 인정근무인원을 입력합니다.&lt;/div&gt;
+&lt;div class=&quot;grid&quot;&gt;
+&lt;div&gt;&lt;label&gt;요양보호사&lt;/label&gt;&lt;input id=&quot;care&quot; type=&quot;number&quot; step=&quot;0.01&quot; value=&quot;5&quot;&gt;&lt;/div&gt;
+&lt;div&gt;&lt;label&gt;사회복지사&lt;/label&gt;&lt;input id=&quot;sw&quot; type=&quot;number&quot; step=&quot;0.01&quot; value=&quot;2&quot;&gt;&lt;/div&gt;
+&lt;div&gt;&lt;label&gt;간호사&lt;/label&gt;&lt;input id=&quot;rn&quot; type=&quot;number&quot; step=&quot;0.01&quot; value=&quot;1&quot;&gt;&lt;/div&gt;
+&lt;div&gt;&lt;label&gt;간호조무사&lt;/label&gt;&lt;input id=&quot;na&quot; type=&quot;number&quot; step=&quot;0.01&quot; value=&quot;1&quot;&gt;&lt;/div&gt;
+&lt;div&gt;&lt;label&gt;물리치료사&lt;/label&gt;&lt;input id=&quot;pt&quot; type=&quot;number&quot; step=&quot;0.01&quot; value=&quot;0&quot;&gt;&lt;/div&gt;
+&lt;div&gt;&lt;label&gt;작업치료사&lt;/label&gt;&lt;input id=&quot;ot&quot; type=&quot;number&quot; step=&quot;0.01&quot; value=&quot;0&quot;&gt;&lt;/div&gt;
+&lt;div&gt;&lt;label&gt;조리원&lt;/label&gt;&lt;input id=&quot;cook&quot; type=&quot;number&quot; step=&quot;0.01&quot; value=&quot;1&quot;&gt;&lt;/div&gt;
+&lt;div&gt;&lt;label&gt;급식 운영&lt;/label&gt;&lt;select id=&quot;meal&quot;&gt;&lt;option value=&quot;out&quot;&gt;위탁&lt;/option&gt;&lt;option value=&quot;direct&quot;&gt;직접조리&lt;/option&gt;&lt;/select&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;grid&quot; style=&quot;margin-top:10px&quot;&gt;
+&lt;div&gt;&lt;label&gt;정원초과 발생일수&lt;/label&gt;&lt;input id=&quot;over&quot; type=&quot;number&quot; value=&quot;0&quot;&gt;&lt;/div&gt;
+&lt;div&gt;&lt;label&gt;인력배치 위반 직종 수&lt;/label&gt;&lt;input id=&quot;viol&quot; type=&quot;number&quot; value=&quot;0&quot;&gt;&lt;/div&gt;
+&lt;div&gt;&lt;label&gt;겸직·출산휴가·퇴사특례 제외 반영&lt;/label&gt;&lt;select id=&quot;eligible&quot;&gt;&lt;option value=&quot;1&quot;&gt;반영 완료&lt;/option&gt;&lt;option value=&quot;0&quot;&gt;미반영&lt;/option&gt;&lt;/select&gt;&lt;/div&gt;
+&lt;div&gt;&lt;label&gt;간호·재활 통합 의무인원 처리&lt;/label&gt;&lt;select disabled&gt;&lt;option&gt;자동 1명 차감&lt;/option&gt;&lt;/select&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;/section&gt;
+
+&lt;section class=&quot;card&quot;&gt;
+&lt;h2&gt;맞춤형서비스 입력&lt;/h2&gt;&lt;div class=&#x27;section-sub&#x27;&gt;프로그램 제공횟수와 인정요건을 입력합니다.&lt;/div&gt;
+&lt;div class=&quot;grid&quot;&gt;
+&lt;div&gt;&lt;label&gt;주 제공횟수&lt;/label&gt;&lt;input id=&quot;weekProg&quot; type=&quot;number&quot; value=&quot;3&quot;&gt;&lt;/div&gt;
+&lt;div&gt;&lt;label&gt;월 제공횟수&lt;/label&gt;&lt;input id=&quot;monthProg&quot; type=&quot;number&quot; value=&quot;12&quot;&gt;&lt;/div&gt;
+&lt;div&gt;&lt;label&gt;주 2회 이상 제공 시 2종류 이상&lt;/label&gt;&lt;select id=&quot;twoKinds&quot;&gt;&lt;option value=&quot;1&quot;&gt;충족&lt;/option&gt;&lt;option value=&quot;0&quot;&gt;미충족&lt;/option&gt;&lt;/select&gt;&lt;/div&gt;
+&lt;div&gt;&lt;label&gt;외부강사·자격·회당 60분 충족&lt;/label&gt;&lt;select id=&quot;progOK&quot;&gt;&lt;option value=&quot;1&quot;&gt;충족&lt;/option&gt;&lt;option value=&quot;0&quot;&gt;미충족&lt;/option&gt;&lt;/select&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;/section&gt;
+
+
+
+&lt;section class=&quot;card detail-block&quot;&gt;
+&lt;h2&gt;간호사와 간호조무사 가산 구분&lt;/h2&gt;
+&lt;div class=&quot;note&quot;&gt;
+&lt;b&gt;간호사배치 가산&lt;/b&gt;&lt;br&gt;
+간호사에게만 1명당 0.6점이 적용됩니다. 간호조무사를 2명 또는 3명 배치해도 이 0.6점은 발생하지 않습니다.&lt;br&gt;&lt;br&gt;
+&lt;b&gt;간호(조무)사 인력추가배치 가산&lt;/b&gt;&lt;br&gt;
+간호사와 간호조무사는 의무인원을 초과하여 추가 배치되고, 두 직종을 합한 1인당 이용자 수가 19명 미만이면 인력추가배치 가산 대상이 될 수 있습니다.&lt;br&gt;&lt;br&gt;
+&lt;b&gt;평균 이용자 40명 예시&lt;/b&gt;&lt;br&gt;
+간호조무사 2명: 40 ÷ 2 = 20명 → 19명 미만이 아니므로 인력추가배치 미가산&lt;br&gt;
+간호조무사 3명: 40 ÷ 3 = 13.33명 → 비율 기준 충족. 의무인원 차감 후 추가 인정인원에 대해서만 가산 가능&lt;br&gt;
+간호사 1명: 별도로 간호사배치 가산 0.6점 적용 가능
+&lt;/div&gt;
+&lt;/section&gt;
+
+&lt;section class=&quot;card detail-block&quot;&gt;
+&lt;h2&gt;입소자수별 인정상한 및 추가산정 기준&lt;/h2&gt;
+&lt;div class=&quot;note&quot;&gt;
+&lt;b&gt;주·야간보호기관 기본 가산점수 인정범위&lt;/b&gt;&lt;br&gt;
+5명 미만 1.4점, 5명 이상 10명 미만 2.6점, 10명 이상 30명 미만 4.0점,
+30명 이상 50명 미만 6.4점, 50명 이상 70명 미만 8.8점,
+70명 이상 80명 미만 10.0점, 80명 이상 90명 미만 11.2점,
+90명 이상 120명 미만 13.6점, 120명 이상 14.8점 이하입니다.&lt;br&gt;&lt;br&gt;
+&lt;b&gt;요양보호사 추가배치에 따른 인정범위 추가산정&lt;/b&gt;&lt;br&gt;
+10명 이상 30명 미만: 추가 3명은 1.2점, 4명 이상은 2.4점 추가&lt;br&gt;
+30명 이상 50명 미만: 추가 4명은 1.2점, 5명 이상은 2.4점 추가&lt;br&gt;
+50명 이상 70명 미만: 추가 5명은 1.2점, 6명 이상은 2.4점 추가&lt;br&gt;
+70명 이상 90명 미만: 추가 6명은 1.2점, 7명 이상은 2.4점 추가&lt;br&gt;
+90명 이상 120명 미만: 추가 7명은 1.2점, 8명은 2.4점, 9명 이상은 3.6점 추가&lt;br&gt;
+120명 이상: 추가 8명은 1.2점, 9명은 2.4점, 10명 이상은 3.6점 추가&lt;br&gt;&lt;br&gt;
+요양보호사, 사회복지사, 간호사·간호조무사, 물리치료사 및 작업치료사의 추가배치 점수는 모두
+&lt;strong&gt;인력추가배치 가산점수 총합&lt;/strong&gt;에 포함합니다. 이 총합에 입소자수별 기본 인정상한과
+요양보호사 추가배치에 따른 인정범위 추가산정을 적용하여 최종 인력가산 점수를 결정합니다.&lt;br&gt;&lt;br&gt;
+물리치료사·작업치료사 1.4점은 인정상한과 별도로 다시 더하는 점수가 아닙니다.
+다만, 간호사배치 가산 0.6점과 맞춤형서비스 가산 0.25점 또는 0.5점은 인력추가배치 인정상한 적용 후
+별도 항목으로 더합니다.
+&lt;/div&gt;
+&lt;/section&gt;
+
+&lt;section class=&quot;card&quot;&gt;
+&lt;div class=&quot;copyright-box&quot;&gt;
+&lt;div&gt;&lt;strong&gt;2026 주·야간보호센터 가산점수 자동계산기 V1&lt;/strong&gt;&lt;/div&gt;
+&lt;div&gt;© 2026 마음주간보호센터. All rights reserved.&lt;/div&gt;
+&lt;div&gt;무단 복제·배포·판매·변형 및 저작권 표시 삭제를 금합니다.&lt;/div&gt;
+&lt;div style=&quot;margin-top:6px;color:#697789&quot;&gt;문서 식별번호: MCP-DCC-2026-008 · 최초 제작표시일: 2026-07-18&lt;/div&gt;
+&lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;
+
+&lt;script&gt;
+const ids=[&quot;u&quot;,&quot;cap&quot;,&quot;type&quot;,&quot;days&quot;,&quot;care&quot;,&quot;sw&quot;,&quot;rn&quot;,&quot;na&quot;,&quot;pt&quot;,&quot;ot&quot;,&quot;cook&quot;,&quot;meal&quot;,&quot;over&quot;,&quot;viol&quot;,&quot;eligible&quot;,&quot;weekProg&quot;,&quot;monthProg&quot;,&quot;twoKinds&quot;,&quot;progOK&quot;];
+const N=id=&gt;Math.max(0,parseFloat(document.getElementById(id).value)||0);
+function roundHalfUp(x){return Math.floor(x+0.5)}
+function floor2(x){return Math.floor(x*100)/100}
+function toggleNotice(){
+ const p=document.getElementById(&quot;noticePanel&quot;);
+ p.style.display=(p.style.display===&quot;none&quot;||!p.style.display)?&quot;block&quot;:&quot;none&quot;;
+}
+function showRule(name,btn){
+ document.querySelectorAll(&quot;.rule-panel&quot;).forEach(el=&gt;el.classList.remove(&quot;active&quot;));
+ document.querySelectorAll(&quot;.rule-tabs button&quot;).forEach(el=&gt;el.classList.remove(&quot;active&quot;));
+ document.getElementById(&quot;rule-&quot;+name).classList.add(&quot;active&quot;);
+ btn.classList.add(&quot;active&quot;);
+}
+function toggleLicense(){
+ const p=document.getElementById(&quot;licensePanel&quot;);
+ p.style.display=(p.style.display===&quot;none&quot;||!p.style.display)?&quot;block&quot;:&quot;none&quot;;
+}
+function resetForm(){
+ const numericIds=[&quot;u&quot;,&quot;cap&quot;,&quot;days&quot;,&quot;care&quot;,&quot;sw&quot;,&quot;rn&quot;,&quot;na&quot;,&quot;pt&quot;,&quot;ot&quot;,&quot;cook&quot;,&quot;over&quot;,&quot;viol&quot;,&quot;weekProg&quot;,&quot;monthProg&quot;];
+ numericIds.forEach(id=&gt;{ document.getElementById(id).value=&quot;0&quot;; });
+
+ document.getElementById(&quot;type&quot;).value=&quot;normal&quot;;
+ document.getElementById(&quot;meal&quot;).value=&quot;out&quot;;
+ document.getElementById(&quot;eligible&quot;).value=&quot;1&quot;;
+ document.getElementById(&quot;twoKinds&quot;).value=&quot;1&quot;;
+ document.getElementById(&quot;progOK&quot;).value=&quot;1&quot;;
+
+ calc();
+}
+
+function chooseMandatory(rn,na,pt,ot){
+ const v={rn,na,pt,ot};
+ for(const k of [&quot;rn&quot;,&quot;na&quot;,&quot;pt&quot;,&quot;ot&quot;]) if(v[k]&gt;=1) return k;
+ return null;
+}
+
+function getBaseCap(u){
+ if(u&lt;5) return {label:&quot;5명 미만&quot;,cap:1.4};
+ if(u&lt;10) return {label:&quot;5명 이상 10명 미만&quot;,cap:2.6};
+ if(u&lt;30) return {label:&quot;10명 이상 30명 미만&quot;,cap:4.0};
+ if(u&lt;50) return {label:&quot;30명 이상 50명 미만&quot;,cap:6.4};
+ if(u&lt;70) return {label:&quot;50명 이상 70명 미만&quot;,cap:8.8};
+ if(u&lt;80) return {label:&quot;70명 이상 80명 미만&quot;,cap:10.0};
+ if(u&lt;90) return {label:&quot;80명 이상 90명 미만&quot;,cap:11.2};
+ if(u&lt;120) return {label:&quot;90명 이상 120명 미만&quot;,cap:13.6};
+ return {label:&quot;120명 이상&quot;,cap:14.8};
+}
+function getCareExtraCap(u,careExtra){
+ let levels=[];
+ if(u&gt;=10 &amp;&amp; u&lt;30) levels=[[3,1.2],[4,2.4]];
+ else if(u&gt;=30 &amp;&amp; u&lt;50) levels=[[4,1.2],[5,2.4]];
+ else if(u&gt;=50 &amp;&amp; u&lt;70) levels=[[5,1.2],[6,2.4]];
+ else if(u&gt;=70 &amp;&amp; u&lt;90) levels=[[6,1.2],[7,2.4]];
+ else if(u&gt;=90 &amp;&amp; u&lt;120) levels=[[7,1.2],[8,2.4],[9,3.6]];
+ else if(u&gt;=120) levels=[[8,1.2],[9,2.4],[10,3.6]];
+ if(!levels.length){
+   return {cap:0,status:&quot;추가산정 기준 없음&quot;,next:null,levels:[]};
+ }
+ let cap=0;
+ for(const [need,score] of levels) if(careExtra&gt;=need) cap=score;
+ let next=levels.find(([need])=&gt;careExtra&lt;need) || null;
+ return {
+   cap,
+   status:cap&gt;0?&quot;추가산정 가능&quot;:&quot;추가산정 미충족&quot;,
+   next,
+   levels
+ };
+}
+
+function toggleView(){
+ document.body.classList.toggle(&quot;detail-mode&quot;);
+ const detailed=document.body.classList.contains(&quot;detail-mode&quot;);
+ document.getElementById(&quot;viewBtn&quot;).textContent=detailed?&quot;간편보기&quot;:&quot;상세보기&quot;;
+}
+
+function calc(){
+ const u=N(&quot;u&quot;),care=N(&quot;care&quot;),sw=N(&quot;sw&quot;),rn=N(&quot;rn&quot;),na=N(&quot;na&quot;),pt=N(&quot;pt&quot;),ot=N(&quot;ot&quot;),cook=N(&quot;cook&quot;);
+ const type=document.getElementById(&quot;type&quot;).value,direct=document.getElementById(&quot;meal&quot;).value===&quot;direct&quot;;
+ const days=Math.max(1,N(&quot;days&quot;)),over=N(&quot;over&quot;),viol=N(&quot;viol&quot;);
+ const week=N(&quot;weekProg&quot;),month=N(&quot;monthProg&quot;);
+ const twoKinds=document.getElementById(&quot;twoKinds&quot;).value===&quot;1&quot;;
+ const progOK=document.getElementById(&quot;progOK&quot;).value===&quot;1&quot;;
+ const eligible=document.getElementById(&quot;eligible&quot;).value===&quot;1&quot;;
+
+ const reqCare=Math.max(1,roundHalfUp(u/7));
+ const reqSW=u&gt;=10?1:0;
+ const reqHealth=u&gt;=10?1:0;
+ const reqCook=(u&gt;=10&amp;&amp;direct)?1:0;
+
+ const mandatory=chooseMandatory(rn,na,pt,ot);
+ const nursingTotal=Math.floor(rn)+Math.floor(na);
+
+ let extraRN=Math.floor(rn), extraNA=Math.floor(na);
+ let extraPT=Math.floor(pt), extraOT=Math.floor(ot);
+
+ // 간호·재활 직종 중 1명을 의무인력으로 우선 차감
+ if(reqHealth &amp;&amp; mandatory===&quot;rn&quot;) extraRN=Math.max(0,extraRN-1);
+ if(reqHealth &amp;&amp; mandatory===&quot;na&quot;) extraNA=Math.max(0,extraNA-1);
+ if(reqHealth &amp;&amp; mandatory===&quot;pt&quot;) extraPT=Math.max(0,extraPT-1);
+ if(reqHealth &amp;&amp; mandatory===&quot;ot&quot;) extraOT=Math.max(0,extraOT-1);
+
+ const careExtra=Math.max(0,Math.floor(care)-reqCare);
+ const swExtra=Math.max(0,Math.floor(sw)-reqSW);
+ const cookExtra=Math.max(0,Math.floor(cook)-reqCook);
+
+ const careRatio=care?floor2(u/care):0;
+ const nursingRatio=nursingTotal?floor2(u/nursingTotal):0;
+ const careOK=careExtra&gt;0 &amp;&amp; careRatio&lt;(type===&quot;dementia&quot;?3.9:6.4);
+ const nursingExtra=extraRN+extraNA;
+ const nursingExtraOK=nursingExtra&gt;0 &amp;&amp; nursingRatio&lt;19;
+
+ // 직종별 인력추가배치 점수
+ const careScore=careOK?careExtra*1.2:0;
+ const rnExtraScore=nursingExtraOK?extraRN*1.2:0;
+ const naExtraScore=nursingExtraOK?extraNA*1.2:0;
+ const ptScore=extraPT*1.4;
+ const otScore=extraOT*1.4;
+ const swScore=swExtra*1.4;
+
+ let rows=[
+ [&quot;요양보호사&quot;,reqCare,care,careOK?careExtra:0,careRatio,1.2,careScore,careOK,
+  careOK?&quot;인력추가배치 총합에 포함&quot;:&quot;추가인원 또는 비율 기준 미충족&quot;],
+ [&quot;간호사&quot;,mandatory===&quot;rn&quot;?1:0,rn,nursingExtraOK?extraRN:0,nursingRatio,1.2,rnExtraScore,rnExtraScore&gt;0,
+  rnExtraScore&gt;0?&quot;인력추가배치 총합에 포함&quot;:&quot;간호사배치 0.6점은 별도&quot;],
+ [&quot;간호조무사&quot;,mandatory===&quot;na&quot;?1:0,na,nursingExtraOK?extraNA:0,nursingRatio,1.2,naExtraScore,naExtraScore&gt;0,
+  naExtraScore&gt;0?&quot;인력추가배치 총합에 포함&quot;:&quot;간호사배치 0.6점 대상 아님&quot;],
+ [&quot;물리치료사&quot;,mandatory===&quot;pt&quot;?1:0,pt,extraPT,pt?floor2(u/pt):0,1.4,ptScore,extraPT&gt;0,
+  extraPT&gt;0?&quot;인력추가배치 총합에 포함 · 상한 적용 대상&quot;:&quot;추가인원 없음&quot;],
+ [&quot;작업치료사&quot;,mandatory===&quot;ot&quot;?1:0,ot,extraOT,ot?floor2(u/ot):0,1.4,otScore,extraOT&gt;0,
+  extraOT&gt;0?&quot;인력추가배치 총합에 포함 · 상한 적용 대상&quot;:&quot;추가인원 없음&quot;],
+ [&quot;사회복지사&quot;,reqSW,sw,swExtra,sw?floor2(u/sw):0,1.4,swScore,swExtra&gt;0,
+  swExtra&gt;0?&quot;인력추가배치 총합에 포함 · 상한 적용 대상&quot;:&quot;추가인원 없음&quot;],
+ [&quot;조리원&quot;,reqCook,cook,cookExtra,cook?floor2(u/cook):0,&quot;별도확인&quot;,0,false,
+  direct?&quot;세부요건 확인&quot;:&quot;위탁급식은 조리원 가산 제외&quot;]
+ ];
+
+ // 모든 인력추가배치 직종을 합산
+ let staffRaw=eligible
+   ? careScore+rnExtraScore+naExtraScore+ptScore+otScore+swScore
+   : 0;
+ if(viol&gt;=3) staffRaw=0;
+
+ // 입소자수별 인정상한과 요양보호사 추가산정 상한 적용
+ const base=getBaseCap(u);
+ const careCap=getCareExtraCap(u,careExtra);
+ const maxStaffCap=base.cap+careCap.cap;
+ const staff=Math.min(staffRaw,maxStaffCap);
+ const clipped=Math.max(0,staffRaw-staff);
+
+ // 인력추가배치 상한과 별도인 가산
+ let nurse=eligible?rn*0.6:0;
+ let prog=0;
+ if(type!==&quot;dementia&quot; &amp;&amp; progOK &amp;&amp; twoKinds){
+   if(week&gt;=4 || month&gt;=16)prog=.5;
+   else if(week&gt;=2 || month&gt;=8)prog=.25;
+ }
+
+ const beforeAdjustment=staff+nurse+prog;
+ const factor=Math.max(0,1-over/days);
+ const grand=beforeAdjustment*factor;
+ const mandatoryName={rn:&quot;간호사&quot;,na:&quot;간호조무사&quot;,pt:&quot;물리치료사&quot;,ot:&quot;작업치료사&quot;}[mandatory]||&quot;없음&quot;;
+
+ document.getElementById(&quot;staffRows&quot;).innerHTML=rows.map(r=&gt;
+ `&lt;tr&gt;&lt;td&gt;${r[0]}&lt;/td&gt;&lt;td&gt;${r[1]}&lt;/td&gt;&lt;td&gt;${r[2]}&lt;/td&gt;&lt;td&gt;${r[3]}&lt;/td&gt;&lt;td&gt;${r[4]}&lt;/td&gt;&lt;td&gt;${r[5]}&lt;/td&gt;&lt;td&gt;${typeof r[6]===&quot;number&quot;?r[6].toFixed(2):r[6]}&lt;/td&gt;&lt;td class=&quot;${r[7]?&quot;ok&quot;:&quot;bad&quot;}&quot;&gt;${r[7]?&quot;가산&quot;:&quot;미가산&quot;}&lt;div class=&quot;small&quot;&gt;${r[8]}&lt;/div&gt;&lt;/td&gt;&lt;/tr&gt;`).join(&quot;&quot;);
+
+ let nursingReason=&quot;&quot;;
+ if(nursingTotal===0){
+   nursingReason=&quot;간호사·간호조무사 입력 없음&quot;;
+ }else if(nursingExtra===0){
+   nursingReason=`통합 ${nursingTotal}명이나 의무인원 차감 후 추가인원 없음`;
+ }else if(nursingRatio&lt;19){
+   nursingReason=`통합 ${nursingTotal}명, 1인당 ${nursingRatio}명 · 추가인원 ${nursingExtra}명`;
+ }else{
+   const needed=Math.floor(u/19)+1;
+   nursingReason=`통합 ${nursingTotal}명, 1인당 ${nursingRatio}명 · 19명 미만 미충족 · 최소 ${needed}명 필요`;
+ }
+
+ const nextText=careCap.next
+   ? `다음 단계: 추가 ${careCap.next[0]}명 필요 → 상한 ${careCap.next[1].toFixed(1)}점 추가`
+   : (careCap.levels.length ? &quot;해당 구간 최고 추가산정 단계 충족&quot; : &quot;이용자 10명 미만은 별도 추가산정 없음&quot;);
+
+ document.getElementById(&quot;sequenceRows&quot;).innerHTML=`
+ &lt;tr&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;요양보호사 인력추가배치&lt;/td&gt;&lt;td&gt;${careScore.toFixed(2)}&lt;/td&gt;&lt;td&gt;${careScore&gt;0?&quot;총합 포함&quot;:&quot;미산정&quot;}&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;2&lt;/td&gt;&lt;td&gt;간호사·간호조무사 인력추가배치&lt;/td&gt;&lt;td&gt;${(rnExtraScore+naExtraScore).toFixed(2)}&lt;/td&gt;&lt;td&gt;${rnExtraScore+naExtraScore&gt;0?&quot;총합 포함&quot;:&quot;미산정&quot;}&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;3&lt;/td&gt;&lt;td&gt;물리치료사·작업치료사 인력추가배치&lt;/td&gt;&lt;td&gt;${(ptScore+otScore).toFixed(2)}&lt;/td&gt;&lt;td&gt;${ptScore+otScore&gt;0?&quot;총합 포함 · 상한 대상&quot;:&quot;미산정&quot;}&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;4&lt;/td&gt;&lt;td&gt;사회복지사 인력추가배치&lt;/td&gt;&lt;td&gt;${swScore.toFixed(2)}&lt;/td&gt;&lt;td&gt;${swScore&gt;0?&quot;총합 포함 · 상한 대상&quot;:&quot;미산정&quot;}&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;5&lt;/td&gt;&lt;td&gt;직종별 인력가산 합계&lt;/td&gt;&lt;td&gt;${staffRaw.toFixed(2)}&lt;/td&gt;&lt;td&gt;입소자수별 상한 적용 전&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;6&lt;/td&gt;&lt;td&gt;입소자수별 인정상한 적용&lt;/td&gt;&lt;td&gt;${staff.toFixed(2)}&lt;/td&gt;&lt;td&gt;${clipped&gt;0?`초과 ${clipped.toFixed(2)}점 제외`:&quot;상한 이내&quot;}&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;7&lt;/td&gt;&lt;td&gt;간호사배치 전용 가산&lt;/td&gt;&lt;td&gt;${nurse.toFixed(2)}&lt;/td&gt;&lt;td&gt;인력가산 상한과 별도&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;8&lt;/td&gt;&lt;td&gt;맞춤형서비스 가산&lt;/td&gt;&lt;td&gt;${prog.toFixed(2)}&lt;/td&gt;&lt;td&gt;인력가산 상한과 별도&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;9&lt;/td&gt;&lt;td&gt;정원초과 조정 전 총점&lt;/td&gt;&lt;td&gt;${beforeAdjustment.toFixed(2)}&lt;/td&gt;&lt;td&gt;상한 적용 인력가산 + 별도 가산&lt;/td&gt;&lt;/tr&gt;`;
+
+ document.getElementById(&quot;capRows&quot;).innerHTML=`
+ &lt;tr&gt;
+  &lt;td&gt;${base.label}&lt;/td&gt;
+  &lt;td&gt;${base.cap.toFixed(1)}점&lt;/td&gt;
+  &lt;td&gt;의무 ${reqCare}명 / 근무 ${Math.floor(care)}명 / 추가 ${careExtra}명&lt;/td&gt;
+  &lt;td&gt;${careCap.cap.toFixed(1)}점&lt;div class=&quot;small&quot;&gt;${nextText}&lt;/div&gt;&lt;/td&gt;
+  &lt;td&gt;${maxStaffCap.toFixed(1)}점&lt;/td&gt;
+  &lt;td class=&quot;${staffRaw&gt;maxStaffCap?&quot;warn&quot;:&quot;ok&quot;}&quot;&gt;${staffRaw&gt;maxStaffCap?&quot;상한 적용&quot;:&quot;상한 이내&quot;}&lt;div class=&quot;small&quot;&gt;계산 ${staffRaw.toFixed(2)}점 → 인정 ${staff.toFixed(2)}점&lt;/div&gt;&lt;/td&gt;
+ &lt;/tr&gt;`;
+
+ const capReason=staffRaw&gt;maxStaffCap
+   ? `요양보호사·간호(조무)사·물리/작업치료사·사회복지사 합계 ${staffRaw.toFixed(2)}점 중 인정상한 ${maxStaffCap.toFixed(2)}점만 적용`
+   : `모든 인력추가배치 직종 합계 ${staffRaw.toFixed(2)}점이 인정상한 ${maxStaffCap.toFixed(2)}점 이내`;
+
+ document.getElementById(&quot;otherRows&quot;).innerHTML=`
+ &lt;tr&gt;&lt;td&gt;인력추가배치 인정상한&lt;/td&gt;&lt;td&gt;${base.label}: 기본 ${base.cap.toFixed(1)}점 + 요양보호사 추가산정 ${careCap.cap.toFixed(1)}점&lt;/td&gt;&lt;td&gt;${staff.toFixed(2)}&lt;/td&gt;&lt;td class=&quot;${staffRaw&gt;maxStaffCap?&quot;warn&quot;:&quot;ok&quot;}&quot;&gt;${staffRaw&gt;maxStaffCap?&quot;상한 제한&quot;:&quot;상한 이내&quot;}&lt;div class=&quot;small&quot;&gt;${capReason}&lt;/div&gt;&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;요양보호사 인정범위 추가산정&lt;/td&gt;&lt;td&gt;추가배치 ${careExtra}명 · ${nextText}&lt;/td&gt;&lt;td&gt;${careCap.cap.toFixed(2)}&lt;/td&gt;&lt;td class=&quot;${careCap.cap&gt;0?&quot;ok&quot;:&quot;bad&quot;}&quot;&gt;${careCap.cap&gt;0?&quot;가능&quot;:&quot;현재 미충족&quot;}&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;물리·작업치료사 처리&lt;/td&gt;&lt;td&gt;물리 ${ptScore.toFixed(2)}점 + 작업 ${otScore.toFixed(2)}점&lt;/td&gt;&lt;td&gt;${(ptScore+otScore).toFixed(2)}&lt;/td&gt;&lt;td class=&quot;${ptScore+otScore&gt;0?&quot;ok&quot;:&quot;bad&quot;}&quot;&gt;${ptScore+otScore&gt;0?&quot;인력가산 총합 포함&quot;:&quot;추가인원 없음&quot;}&lt;div class=&quot;small&quot;&gt;별도 가산이 아니라 입소자수별 인정상한 적용 대상&lt;/div&gt;&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;간호·재활 의무인원 차감&lt;/td&gt;&lt;td&gt;${mandatoryName} 1명 의무인원으로 사용&lt;/td&gt;&lt;td&gt;0.00&lt;/td&gt;&lt;td class=&quot;${mandatory?&quot;ok&quot;:&quot;bad&quot;}&quot;&gt;${mandatory?&quot;정상&quot;:&quot;미충족&quot;}&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;간호(조무)사 인력추가배치&lt;/td&gt;&lt;td&gt;${nursingReason}&lt;/td&gt;&lt;td&gt;${(rnExtraScore+naExtraScore).toFixed(2)}&lt;/td&gt;&lt;td class=&quot;${nursingExtraOK?&quot;ok&quot;:&quot;bad&quot;}&quot;&gt;${nursingExtraOK?&quot;인력가산 총합 포함&quot;:&quot;미가산&quot;}&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;간호사배치 전용 가산&lt;/td&gt;&lt;td&gt;간호사 ${rn}명 × 0.6점 · 간호조무사 제외&lt;/td&gt;&lt;td&gt;${nurse.toFixed(2)}&lt;/td&gt;&lt;td class=&quot;${rn&gt;0&amp;&amp;eligible?&quot;ok&quot;:&quot;bad&quot;}&quot;&gt;${rn&gt;0&amp;&amp;eligible?&quot;별도 가산&quot;:&quot;미가산&quot;}&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;맞춤형서비스&lt;/td&gt;&lt;td&gt;주 ${week}회 / 월 ${month}회&lt;/td&gt;&lt;td&gt;${prog.toFixed(2)}&lt;/td&gt;&lt;td class=&quot;${prog&gt;0?&quot;ok&quot;:&quot;bad&quot;}&quot;&gt;${prog&gt;0?&quot;별도 가산&quot;:&quot;미가산&quot;}&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;정원초과 조정&lt;/td&gt;&lt;td&gt;${over}/${days}일, 적용률 ${(factor*100).toFixed(1)}%&lt;/td&gt;&lt;td&gt;-&lt;/td&gt;&lt;td class=&quot;${over&gt;0?&quot;warn&quot;:&quot;ok&quot;}&quot;&gt;${over&gt;0?&quot;감액&quot;:&quot;정상&quot;}&lt;/td&gt;&lt;/tr&gt;`;
+
+ document.getElementById(&quot;staffRaw&quot;).textContent=staffRaw.toFixed(2);
+ document.getElementById(&quot;baseCap&quot;).textContent=base.cap.toFixed(2);
+ document.getElementById(&quot;extraCap&quot;).textContent=careCap.cap.toFixed(2);
+ document.getElementById(&quot;staffSum&quot;).textContent=staff.toFixed(2);
+ document.getElementById(&quot;nurseSum&quot;).textContent=nurse.toFixed(2);
+ document.getElementById(&quot;progSum&quot;).textContent=prog.toFixed(2);
+ 
+ document.getElementById(&quot;grand&quot;).textContent=grand.toFixed(2);
+
+ // 간편보기 대시보드
+ document.getElementById(&quot;grandDash&quot;).textContent=grand.toFixed(2);
+ document.getElementById(&quot;staffRawDash&quot;).textContent=staffRaw.toFixed(2);
+ document.getElementById(&quot;baseCapDash&quot;).textContent=base.cap.toFixed(2);
+ document.getElementById(&quot;extraCapDash&quot;).textContent=careCap.cap.toFixed(2);
+ document.getElementById(&quot;staffDash&quot;).textContent=staff.toFixed(2);
+ document.getElementById(&quot;nurseDash&quot;).textContent=nurse.toFixed(2);
+ 
+ document.getElementById(&quot;progDash&quot;).textContent=prog.toFixed(2);
+
+ const mandatoryOK = (!reqHealth || !!mandatory) &amp;&amp; care&gt;=reqCare &amp;&amp; sw&gt;=reqSW &amp;&amp; (!reqCook || cook&gt;=reqCook);
+ const statusMandatory=document.getElementById(&quot;statusMandatory&quot;);
+ statusMandatory.textContent=mandatoryOK?&quot;충족&quot;:&quot;확인필요&quot;;
+ statusMandatory.parentElement.className=&quot;mcp-status &quot;+(mandatoryOK?&quot;good&quot;:&quot;bad&quot;);
+
+ document.getElementById(&quot;statusStaff&quot;).textContent=staff.toFixed(2);
+ document.getElementById(&quot;statusStaff&quot;).parentElement.className=&quot;mcp-status &quot;+(staff&gt;0?&quot;good&quot;:&quot;warn&quot;);
+
+ document.getElementById(&quot;statusNurse&quot;).textContent=nurse.toFixed(2);
+ document.getElementById(&quot;statusNurse&quot;).parentElement.className=&quot;mcp-status &quot;+(nurse&gt;0?&quot;good&quot;:&quot;warn&quot;);
+
+ document.getElementById(&quot;statusProg&quot;).textContent=prog.toFixed(2);
+ document.getElementById(&quot;statusProg&quot;).parentElement.className=&quot;mcp-status &quot;+(prog&gt;0?&quot;good&quot;:&quot;warn&quot;);
+
+ document.getElementById(&quot;statusGrand&quot;).textContent=grand.toFixed(2);
+ document.getElementById(&quot;statusGrand&quot;).parentElement.className=&quot;mcp-status &quot;+(grand&gt;0?&quot;good&quot;:&quot;warn&quot;);
+
+ document.getElementById(&quot;quickRows&quot;).innerHTML=`
+ &lt;tr class=&quot;highlight&quot;&gt;&lt;td&gt;&lt;b&gt;인력 추가배치&lt;/b&gt;&lt;/td&gt;&lt;td&gt;${staffRaw.toFixed(2)}&lt;/td&gt;&lt;td&gt;&lt;b&gt;${staff.toFixed(2)}&lt;/b&gt;&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;result-badge ${staffRaw&gt;maxStaffCap?&quot;no&quot;:&quot;&quot;}&quot;&gt;${staffRaw&gt;maxStaffCap?&quot;상한 적용&quot;:&quot;인정&quot;}&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;간호사 배치&lt;/td&gt;&lt;td&gt;${nurse.toFixed(2)}&lt;/td&gt;&lt;td&gt;${nurse.toFixed(2)}&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;result-badge ${nurse&gt;0?&quot;&quot;:&quot;no&quot;}&quot;&gt;${nurse&gt;0?&quot;가산&quot;:&quot;미가산&quot;}&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr&gt;&lt;td&gt;맞춤형서비스&lt;/td&gt;&lt;td&gt;${prog.toFixed(2)}&lt;/td&gt;&lt;td&gt;${prog.toFixed(2)}&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;result-badge ${prog&gt;0?&quot;&quot;:&quot;no&quot;}&quot;&gt;${prog&gt;0?&quot;가산&quot;:&quot;미가산&quot;}&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;
+ &lt;tr class=&quot;highlight&quot;&gt;&lt;td&gt;&lt;b&gt;최종 가산총점&lt;/b&gt;&lt;/td&gt;&lt;td colspan=&quot;2&quot;&gt;&lt;b&gt;${grand.toFixed(2)}&lt;/b&gt;&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;result-badge&quot;&gt;최종&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;`;
+
+}
+ids.forEach(id=&gt;{
+ const el=document.getElementById(id);
+ el.addEventListener(&quot;input&quot;,calc);
+ el.addEventListener(&quot;change&quot;,calc);
+});
+calc();
+&lt;/script&gt;
+&lt;/body&gt;&lt;/html&gt;"
+style="display:block;width:100%;height:2400px;border:1px solid #d9dee7;border-radius:16px;background:#f4f6f9"></iframe>
+</div>
+
+<div id="pageDayMonthly" class="page">
+<iframe id="dayMonthlyFrame" title="주야간 단기보호 월별가산금 자동계산" srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;ko&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;
+&lt;title&gt;2026년 주야간·단기보호 월별 가산금 자동계산기 v11&lt;/title&gt;
+&lt;style&gt;
+:root{--navy:#17375e;--blue:#2463a7;--sky:#eaf3fb;--line:#cbd8e6;--ink:#172435;--muted:#617084;--ok:#13795b;--warn:#b4541a;--bad:#b3261e;--paper:#fff;--bg:#f3f6fa}
+*{box-sizing:border-box} body{margin:0;font-family:&quot;Pretendard&quot;,&quot;Noto Sans KR&quot;,&quot;Malgun Gothic&quot;,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5}
+button,input,select{font:inherit}.top{background:linear-gradient(130deg,#112f53,#2769aa);color:white;padding:30px 20px}.top-inner{max-width:1180px;margin:auto}.eyebrow{font-size:13px;font-weight:800;letter-spacing:.08em;opacity:.82}.top h1{margin:5px 0 4px;font-size:clamp(24px,4vw,38px);line-height:1.25}.top p{margin:0;opacity:.9}.nav{max-width:1180px;margin:15px auto 0;display:flex;gap:8px;flex-wrap:wrap}.nav a{color:white;text-decoration:none;border:1px solid #ffffff55;background:#ffffff16;border-radius:999px;padding:8px 13px;font-size:13px}.nav a.active{background:white;color:var(--navy);font-weight:800}
+.wrap{max-width:1180px;margin:18px auto 48px;padding:0 16px}.months{display:grid;grid-template-columns:repeat(12,1fr);gap:7px;margin-bottom:14px}.month{border:1px solid var(--line);background:white;border-radius:9px;padding:10px 4px;cursor:pointer;font-weight:800;color:#53657a}.month.active{background:var(--navy);border-color:var(--navy);color:#fff}
+.grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(310px,.65fr);gap:16px;align-items:start}.card{background:var(--paper);border:1px solid #dae3ed;border-radius:14px;box-shadow:0 4px 16px #183c6510;margin-bottom:15px;overflow:hidden}.card-h{padding:15px 18px;border-bottom:1px solid #e4eaf1;display:flex;align-items:center;justify-content:space-between;gap:10px}.card-h h2{font-size:18px;margin:0}.card-b{padding:17px 18px}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field label{display:block;font-size:13px;font-weight:800;color:#42546a;margin-bottom:6px}.field small{display:block;color:var(--muted);font-size:11px;margin-top:5px}.control{display:flex;align-items:center;border:1px solid #bac9d9;border-radius:9px;background:#fff;overflow:hidden}.control:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px #2463a71c}.control input,.control select{width:100%;border:0;outline:0;padding:10px 11px;background:transparent;color:var(--ink)}.unit{padding:0 11px;color:#6c7a8c;white-space:nowrap;font-size:13px}.full{grid-column:1/-1}
+.staff-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}.staff-table th{background:#edf3f9;color:#354b64;font-weight:800}.staff-table th,.staff-table td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px;text-align:center}.staff-table tr&gt;*:first-child{border-left:1px solid var(--line)}.staff-table thead tr:first-child&gt;*{border-top:1px solid var(--line)}.staff-table thead tr:first-child&gt;*:first-child{border-top-left-radius:8px}.staff-table thead tr:first-child&gt;*:last-child{border-top-right-radius:8px}.staff-table td:first-child{text-align:left;font-weight:800}.staff-table input{width:82px;max-width:100%;padding:7px;border:1px solid #b9c8d8;border-radius:7px;text-align:right}.staff-table .score{font-weight:900;color:var(--blue)}.tag{display:inline-block;font-size:10px;background:#e8f1fa;color:#235c93;padding:2px 6px;border-radius:99px;margin-left:3px}.row-bad td{background:#fff5f3}.row-good td{background:#f2fbf7}
+.checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.check{border:1px solid var(--line);border-radius:10px;padding:11px;display:flex;gap:9px;align-items:flex-start}.check input{margin-top:4px}.check strong{display:block;font-size:13px}.check span{display:block;font-size:11px;color:var(--muted)}
+.result{position:sticky;top:12px}.hero-result{background:linear-gradient(145deg,#17375e,#245f9c);color:white;padding:22px;border-radius:13px;margin-bottom:12px}.hero-result span{font-size:13px;opacity:.84}.hero-result strong{display:block;font-size:34px;letter-spacing:-.04em;margin-top:4px}.hero-result small{opacity:.8}.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.metric{border:1px solid var(--line);border-radius:10px;padding:11px;background:#fbfdff}.metric span{display:block;color:var(--muted);font-size:11px}.metric strong{display:block;font-size:17px;margin-top:2px}.calc-list{margin:13px 0 0;padding:0;list-style:none}.calc-list li{display:flex;justify-content:space-between;gap:15px;padding:9px 0;border-bottom:1px dashed #d4dde7;font-size:13px}.calc-list b{white-space:nowrap}.status{margin-top:12px;padding:11px 12px;border-radius:9px;font-size:12px;font-weight:700}.status.ok{background:#eaf8f2;color:var(--ok)}.status.warn{background:#fff4e8;color:var(--warn)}.status.bad{background:#fff0ee;color:var(--bad)}
+.formula{background:#f2f6fb;border-radius:9px;padding:12px;font-size:12px;color:#3f5166}.formula b{color:var(--navy)}.notice{font-size:12px;color:#526277;background:#f8fafc;border-left:4px solid #6d91b8;padding:12px 13px}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:8px;padding:9px 13px;cursor:pointer;font-weight:800;font-size:12px}.primary{background:var(--navy);color:white}.light{background:#eaf0f6;color:#26425f}.danger{background:#fff0ee;color:#a5322d}.autosave{font-size:11px;color:var(--ok);font-weight:800}.details summary{cursor:pointer;font-weight:800;color:#294b70}.details{font-size:12px;color:#4f6176}.details table{width:100%;border-collapse:collapse;margin-top:10px}.details th,.details td{border:1px solid var(--line);padding:6px;text-align:center}.foot{text-align:center;color:#788698;font-size:11px;margin-top:22px}
+.audit{margin-top:12px;border:1px solid #bdd8ca;background:#f3fbf7;border-radius:10px;padding:11px 12px}.audit h3{font-size:13px;color:#116248;margin:0 0 7px}.audit ul{list-style:none;margin:0;padding:0}.audit li{font-size:11px;padding:4px 0;border-bottom:1px dashed #cfe2d8}.audit li:last-child{border:0}.audit b{float:right;color:#17375e}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.result{position:static}.months{grid-template-columns:repeat(6,1fr)}}
+@media(max-width:560px){.fields,.checks{grid-template-columns:1fr}.months{grid-template-columns:repeat(4,1fr)}.staff-table{font-size:11px}.staff-table th,.staff-table td{padding:6px 3px}.staff-table input{width:60px}.hero-result strong{font-size:29px}}
+@media print{body{background:#fff}.top{padding:16px}.nav,.months,.actions,.autosave{display:none}.wrap{margin:10px auto}.grid{display:block}.result{position:static}.card{box-shadow:none;break-inside:avoid}}
+
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;header class=&quot;top&quot;&gt;&lt;div class=&quot;top-inner&quot;&gt;
+  &lt;div class=&quot;eyebrow&quot;&gt;2026년 고시 기준 계산용&lt;/div&gt;
+  &lt;h1&gt;주야간·단기보호 월별 가산금 자동계산기 &lt;small style=&quot;font-size:.45em;opacity:.8&quot;&gt;v13&lt;/small&gt;&lt;/h1&gt;
+  &lt;p&gt;월평균 이용자 수와 법정·실제 배치인력을 비교하여 예상 가산점수와 가산금액을 계산합니다.&lt;/p&gt;
+  
+&lt;/div&gt;&lt;/header&gt;
+&lt;div class=&quot;claim-disclaimer&quot; style=&quot;margin:12px 0;padding:10px 12px;background:#fff8e6;border:1px solid #ead59a;border-left:4px solid #d7a72b;border-radius:7px;font-size:13px;line-height:1.6;color:#5b4a22;&quot;&gt;※ 본 프로그램의 계산 결과는 예상값이며, 실제 공단 청구 및 지급 결과와 다를 수 있습니다.&lt;/div&gt;
+&lt;main class=&quot;wrap&quot;&gt;
+  &lt;div class=&quot;months&quot; id=&quot;months&quot;&gt;&lt;/div&gt;
+  &lt;div class=&quot;grid&quot;&gt;
+    &lt;section&gt;
+      &lt;article class=&quot;card&quot;&gt;&lt;div class=&quot;card-h&quot;&gt;&lt;h2&gt;① 월별 기본정보&lt;/h2&gt;&lt;span class=&quot;autosave&quot; id=&quot;saveState&quot;&gt;자동 저장&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;card-b&quot;&gt;
+        &lt;div class=&quot;fields&quot;&gt;
+          &lt;div class=&quot;field&quot;&gt;&lt;label&gt;월평균 이용자 수 (청구한 고유 수급자 수 아님)&lt;/label&gt;&lt;div class=&quot;control&quot;&gt;&lt;input id=&quot;users&quot; type=&quot;number&quot; min=&quot;0&quot; step=&quot;0.01&quot; value=&quot;0&quot; placeholder=&quot;예: 30.10&quot;&gt;&lt;span class=&quot;unit&quot;&gt;명&lt;/span&gt;&lt;/div&gt;&lt;small&gt;30명을 청구했더라도 공단 산정 월평균 이용자 수는 30.1명처럼 다를 수 있습니다. 공단의 월평균 이용자 수를 소수점까지 입력하세요.&lt;/small&gt;&lt;/div&gt;
+          &lt;div class=&quot;field&quot;&gt;&lt;label&gt;월 급여비용 총액 (공단부담금+본인부담금, 가산금 제외)&lt;/label&gt;&lt;div class=&quot;control&quot;&gt;&lt;input id=&quot;cost&quot; type=&quot;text&quot; inputmode=&quot;numeric&quot; autocomplete=&quot;off&quot; value=&quot;0&quot; placeholder=&quot;20,000,000&quot;&gt;&lt;span class=&quot;unit&quot;&gt;원&lt;/span&gt;&lt;/div&gt;&lt;small&gt;일반급여와 의료급여 통지서의 가산 전 ‘총액’을 합산해 입력하세요. 청구액·송금액·가산 후 총액은 입력하지 않습니다.&lt;/small&gt;&lt;/div&gt;
+          &lt;div class=&quot;field&quot;&gt;&lt;label&gt;기관 유형&lt;/label&gt;&lt;div class=&quot;control&quot;&gt;&lt;select id=&quot;type&quot;&gt;&lt;option value=&quot;normal&quot;&gt;일반 주야간보호&lt;/option&gt;&lt;option value=&quot;dementia&quot;&gt;치매전담실만 운영 주야간보호&lt;/option&gt;&lt;option value=&quot;short&quot;&gt;단기보호&lt;/option&gt;&lt;/select&gt;&lt;/div&gt;&lt;small&gt;서비스유형점수: 주야간 1.5점 / 치매전담실만 1.3점 / 단기보호 2점&lt;/small&gt;&lt;/div&gt;
+          &lt;div class=&quot;field&quot;&gt;&lt;label&gt;정원&lt;/label&gt;&lt;div class=&quot;control&quot;&gt;&lt;input id=&quot;capacity&quot; type=&quot;number&quot; min=&quot;1&quot; step=&quot;1&quot; value=&quot;80&quot;&gt;&lt;span class=&quot;unit&quot;&gt;명&lt;/span&gt;&lt;/div&gt;&lt;small&gt;배치인력 참고 및 정원초과 확인용&lt;/small&gt;&lt;/div&gt;
+          &lt;div class=&quot;field&quot;&gt;&lt;label&gt;급식 운영&lt;/label&gt;&lt;div class=&quot;control&quot;&gt;&lt;select id=&quot;meal&quot;&gt;&lt;option value=&quot;direct&quot;&gt;직접 조리&lt;/option&gt;&lt;option value=&quot;outsourced&quot;&gt;급식 위탁&lt;/option&gt;&lt;/select&gt;&lt;/div&gt;&lt;small&gt;급식위탁기관은 조리원 추가배치 가산 제외&lt;/small&gt;&lt;/div&gt;
+          &lt;div class=&quot;field&quot;&gt;&lt;label&gt;월 서비스 제공일수&lt;/label&gt;&lt;div class=&quot;control&quot;&gt;&lt;input id=&quot;serviceDays&quot; type=&quot;number&quot; min=&quot;1&quot; max=&quot;31&quot; step=&quot;1&quot; value=&quot;30&quot;&gt;&lt;span class=&quot;unit&quot;&gt;일&lt;/span&gt;&lt;/div&gt;&lt;small&gt;정원초과 발생일수 비례조정에 사용합니다.&lt;/small&gt;&lt;/div&gt;
+          &lt;div class=&quot;field&quot;&gt;&lt;label&gt;정원초과 발생일수&lt;/label&gt;&lt;div class=&quot;control&quot;&gt;&lt;input id=&quot;overDays&quot; type=&quot;number&quot; min=&quot;0&quot; max=&quot;31&quot; step=&quot;1&quot; value=&quot;0&quot;&gt;&lt;span class=&quot;unit&quot;&gt;일&lt;/span&gt;&lt;/div&gt;&lt;small&gt;발생일수 비율만큼 관련 가산을 조정합니다.&lt;/small&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;&lt;/article&gt;
+
+      &lt;article class=&quot;card&quot;&gt;&lt;div class=&quot;card-h&quot;&gt;&lt;h2&gt;② 인력배치 현황&lt;/h2&gt;&lt;button class=&quot;btn light&quot; id=&quot;autoRequired&quot;&gt;법정인원 다시 계산&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;card-b&quot;&gt;
+        &lt;div style=&quot;overflow-x:auto&quot;&gt;&lt;table class=&quot;staff-table&quot;&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;직종&lt;/th&gt;&lt;th&gt;법정 배치&lt;/th&gt;&lt;th&gt;실제 배치&lt;/th&gt;&lt;th&gt;추가 인정&lt;/th&gt;&lt;th&gt;가산점수&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody id=&quot;staffBody&quot;&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;
+        &lt;div class=&quot;notice&quot; style=&quot;margin-top:12px&quot;&gt;현재 인원, 정원, 급식 운영 또는 실제 보건인력을 변경하면 법정 배치인원이 자동 계산됩니다. 2026 고시 검증 결과를 반영하여 주야간보호의 간호(조무)사 의무배치를 물리·작업치료사로 대체하여 자동 처리하지 않습니다. 기관의 지정형태·겸직·근무시간 등에 따라 달라지는 경우에는 자동 계산 후 공단 신고 결과에 맞게 직접 수정하세요.&lt;/div&gt;
+      &lt;/div&gt;&lt;/article&gt;
+
+      &lt;article class=&quot;card&quot;&gt;&lt;div class=&quot;card-h&quot;&gt;&lt;h2&gt;③ 그 밖의 가산&lt;/h2&gt;&lt;/div&gt;&lt;div class=&quot;card-b&quot;&gt;
+        &lt;div class=&quot;fields&quot;&gt;
+          &lt;div class=&quot;field&quot;&gt;&lt;label&gt;맞춤형서비스 제공&lt;/label&gt;&lt;div class=&quot;control&quot;&gt;&lt;select id=&quot;custom&quot;&gt;&lt;option value=&quot;0&quot;&gt;해당 없음&lt;/option&gt;&lt;option value=&quot;0.25&quot;&gt;주 2~3회 또는 월 8회 이상 (0.25점)&lt;/option&gt;&lt;option value=&quot;0.5&quot;&gt;주 4회 또는 월 16회 이상 (0.5점)&lt;/option&gt;&lt;/select&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;field&quot;&gt;&lt;label&gt;맞춤형서비스 요건 확인&lt;/label&gt;&lt;div class=&quot;control&quot;&gt;&lt;select id=&quot;customOK&quot;&gt;&lt;option value=&quot;0&quot;&gt;요건 미확인/미충족&lt;/option&gt;&lt;option value=&quot;1&quot;&gt;외부강사·60분·종류 등 요건 충족&lt;/option&gt;&lt;/select&gt;&lt;/div&gt;&lt;small&gt;횟수만 선택해도 요건 미충족이면 가산하지 않습니다.&lt;/small&gt;&lt;/div&gt;
+          &lt;div class=&quot;field&quot;&gt;&lt;label&gt;통합재가서비스 요건 충족 수급자&lt;/label&gt;&lt;div class=&quot;control&quot;&gt;&lt;input id=&quot;integrated&quot; type=&quot;number&quot; min=&quot;0&quot; step=&quot;1&quot; value=&quot;0&quot;&gt;&lt;span class=&quot;unit&quot;&gt;명&lt;/span&gt;&lt;/div&gt;&lt;small&gt;주야간보호형 통합재가 제공기관만 해당, 1인당 월 100,000원&lt;/small&gt;&lt;/div&gt;
+          &lt;div class=&quot;field&quot;&gt;&lt;label&gt;단기보호 야간직원 가산인원&lt;/label&gt;&lt;div class=&quot;control&quot;&gt;&lt;input id=&quot;nightStaff&quot; type=&quot;number&quot; min=&quot;0&quot; step=&quot;1&quot; value=&quot;0&quot;&gt;&lt;span class=&quot;unit&quot;&gt;명&lt;/span&gt;&lt;/div&gt;&lt;small id=&quot;nightHelp&quot;&gt;기관 유형을 단기보호로 선택하면 1인당 0.9점이 적용됩니다.&lt;/small&gt;&lt;/div&gt;
+          &lt;div class=&quot;field full&quot;&gt;&lt;label&gt;감액·제외 적용&lt;/label&gt;&lt;div class=&quot;checks&quot;&gt;
+            &lt;label class=&quot;check&quot;&gt;&lt;input type=&quot;checkbox&quot; id=&quot;overCapacity&quot;&gt;&lt;span&gt;&lt;strong&gt;정원초과 발생&lt;/strong&gt;&lt;span&gt;초과 발생일수 비율만큼 해당 가산이 제외될 수 있음&lt;/span&gt;&lt;/span&gt;&lt;/label&gt;
+            &lt;label class=&quot;check&quot;&gt;&lt;input type=&quot;checkbox&quot; id=&quot;staffViolation&quot;&gt;&lt;span&gt;&lt;strong&gt;인력배치기준 위반&lt;/strong&gt;&lt;span&gt;체크 시 아래 위반 직종 수를 기준으로 가산을 제한합니다.&lt;/span&gt;&lt;/span&gt;&lt;/label&gt;
+            &lt;div class=&quot;field&quot;&gt;&lt;label&gt;위반 직종 수&lt;/label&gt;&lt;div class=&quot;control&quot;&gt;&lt;input id=&quot;violationCount&quot; type=&quot;number&quot; min=&quot;0&quot; step=&quot;1&quot; value=&quot;0&quot;&gt;&lt;span class=&quot;unit&quot;&gt;개&lt;/span&gt;&lt;/div&gt;&lt;small&gt;3개 직종 이상이면 인력추가배치 가산 전부를 0점 처리합니다.&lt;/small&gt;&lt;/div&gt;
+          &lt;/div&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;&lt;/article&gt;
+    &lt;/section&gt;
+
+    &lt;aside class=&quot;result&quot;&gt;
+      &lt;article class=&quot;card&quot;&gt;&lt;div class=&quot;card-h&quot;&gt;&lt;h2 id=&quot;resultMonth&quot;&gt;1월 예상 결과&lt;/h2&gt;&lt;/div&gt;&lt;div class=&quot;card-b&quot;&gt;
+        &lt;div class=&quot;hero-result&quot;&gt;&lt;span&gt;예상 월 가산금액&lt;/span&gt;&lt;strong id=&quot;totalAmount&quot;&gt;0원&lt;/strong&gt;&lt;small&gt;가산금 제외 급여비용과 월평균 이용자 수 기준 · 공단의 수급자별 계산·반올림으로 실제 금액과 소액 차이 가능&lt;/small&gt;&lt;/div&gt;
+        &lt;div class=&quot;metrics&quot;&gt;
+          &lt;div class=&quot;metric&quot;&gt;&lt;span&gt;가산 기준금액(85%)&lt;/span&gt;&lt;strong id=&quot;baseAmount&quot;&gt;0원&lt;/strong&gt;&lt;/div&gt;
+          &lt;div class=&quot;metric&quot;&gt;&lt;span&gt;적용 가산점수&lt;/span&gt;&lt;strong id=&quot;totalScore&quot;&gt;0점&lt;/strong&gt;&lt;/div&gt;
+          &lt;div class=&quot;metric&quot;&gt;&lt;span&gt;기본 인정상한&lt;/span&gt;&lt;strong id=&quot;baseCap&quot;&gt;0점&lt;/strong&gt;&lt;/div&gt;
+          &lt;div class=&quot;metric&quot;&gt;&lt;span&gt;서비스유형점수&lt;/span&gt;&lt;strong id=&quot;serviceScore&quot;&gt;1.5점&lt;/strong&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;ul class=&quot;calc-list&quot;&gt;
+          &lt;li&gt;&lt;span&gt;인력추가배치(상한 적용)&lt;/span&gt;&lt;b id=&quot;staffAmount&quot;&gt;0원&lt;/b&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;span&gt;조리원 추가배치&lt;/span&gt;&lt;b id=&quot;cookAmount&quot;&gt;0원&lt;/b&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;span&gt;간호사 배치&lt;/span&gt;&lt;b id=&quot;rnAmount&quot;&gt;0원&lt;/b&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;span&gt;맞춤형서비스&lt;/span&gt;&lt;b id=&quot;customAmount&quot;&gt;0원&lt;/b&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;span&gt;단기보호 야간직원&lt;/span&gt;&lt;b id=&quot;nightAmount&quot;&gt;0원&lt;/b&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;span&gt;통합재가 정액가산&lt;/span&gt;&lt;b id=&quot;integratedAmount&quot;&gt;0원&lt;/b&gt;&lt;/li&gt;
+        &lt;/ul&gt;
+        &lt;div class=&quot;status warn&quot; id=&quot;status&quot;&gt;월평균 입소자 수와 급여비용을 입력해 주세요.&lt;/div&gt;
+        &lt;div class=&quot;audit&quot; id=&quot;shortAudit&quot; hidden&gt;&lt;/div&gt;
+      &lt;/div&gt;&lt;/article&gt;
+      &lt;article class=&quot;card&quot;&gt;&lt;div class=&quot;card-h&quot;&gt;&lt;h2&gt;계산식&lt;/h2&gt;&lt;/div&gt;&lt;div class=&quot;card-b&quot;&gt;
+        &lt;div class=&quot;formula&quot;&gt;&lt;b&gt;가산금액&lt;/b&gt; = [(공단부담금 + 본인부담금) 합계에서 가산금을 제외한 월 급여비용 × 85%] × (적용 가산점수 ÷ 월평균 입소자 수) × 서비스유형점수&lt;br&gt;&lt;br&gt;서비스유형점수는 주야간보호 1.5점, 치매전담실만 있는 주야간보호 1.3점, 단기보호 2점입니다. 계산 결과의 10원 미만 단수는 반올림하며 통합재가 정액가산은 별도로 합산합니다. 정원초과 발생일수는 서비스 제공일수 비율로 관련 가산점수에 반영합니다.&lt;/div&gt;
+      &lt;/div&gt;&lt;/article&gt;
+      &lt;article class=&quot;card&quot;&gt;&lt;div class=&quot;card-b actions&quot;&gt;&lt;button class=&quot;btn primary&quot; id=&quot;saveBtn&quot;&gt;현재 월 저장&lt;/button&gt;&lt;button class=&quot;btn danger&quot; id=&quot;resetBtn&quot;&gt;현재 월 초기화&lt;/button&gt;&lt;button class=&quot;btn danger&quot; id=&quot;resetAllBtn&quot;&gt;12개월 전체 초기화&lt;/button&gt;&lt;/div&gt;&lt;/article&gt;
+    &lt;/aside&gt;
+  &lt;/div&gt;
+
+  &lt;article class=&quot;card details&quot;&gt;&lt;div class=&quot;card-b&quot;&gt;&lt;details&gt;&lt;summary&gt;고시 적용 기준 보기&lt;/summary&gt;
+    &lt;p&gt;직종별 점수: 요양보호사·간호(조무)사 1인당 1.2점, 사회복지사·물리(작업)치료사 1인당 1.4점, 주야간보호 조리원은 추가인원 수와 관계없이 1.2점, 간호사는 배치 1인당 0.6점입니다. 단기보호는 요양보호사 1인당 입소자 수가 3.75명 미만인 경우 추가배치 가산을 적용하고, 요건을 충족한 야간직원은 1인당 0.9점을 적용합니다.&lt;/p&gt;
+    &lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;월평균 입소자 수&lt;/th&gt;&lt;th&gt;인력추가배치 기본 인정상한&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;5명 미만&lt;/td&gt;&lt;td&gt;1.4점&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;5명 이상 10명 미만&lt;/td&gt;&lt;td&gt;2.6점&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;10명 이상 30명 미만&lt;/td&gt;&lt;td&gt;4.0점&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;30명 이상 50명 미만&lt;/td&gt;&lt;td&gt;6.4점&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;50명 이상 70명 미만&lt;/td&gt;&lt;td&gt;8.8점&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;70명 이상 80명 미만&lt;/td&gt;&lt;td&gt;10.0점&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;80명 이상 90명 미만&lt;/td&gt;&lt;td&gt;11.2점&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;90명 이상 120명 미만&lt;/td&gt;&lt;td&gt;13.6점&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;120명 이상&lt;/td&gt;&lt;td&gt;14.8점&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;
+    &lt;p&gt;입소자 10명 이상 주야간보호·단기보호기관은 요양보호사 추가배치 인원에 따라 인정상한이 1.2~3.6점 추가될 수 있으며, 프로그램이 해당 규모별 기준을 자동 적용합니다. 조리원·간호사·맞춤형서비스·야간직원·통합재가 정액가산은 적용 가능한 기관 유형을 구분하여 계산합니다.&lt;/p&gt;
+  &lt;/details&gt;&lt;/div&gt;&lt;/article&gt;
+  &lt;p class=&quot;foot&quot;&gt;※ 본 계산기의 예상 가산금액은 입력한 급여비용과 가산점수를 기준으로 산정되며, 실제 국민건강보험공단의 청구·심사 결과와 다를 수 있습니다.&lt;/p&gt;
+&lt;/main&gt;
+&lt;script&gt;
+const KEY=&#x27;daycare_short_bonus_2026_v2&#x27;; let currentMonth=1;
+const roles=[
+  {id:&#x27;director&#x27;,name:&#x27;시설장&#x27;,bonus:false},
+  {id:&#x27;social&#x27;,name:&#x27;사회복지사&#x27;,pt:1.4},
+  {id:&#x27;nurse&#x27;,name:&#x27;간호(조무)사&#x27;,pt:1.2,ratio:19},
+  {id:&#x27;therapist&#x27;,name:&#x27;물리(작업)치료사&#x27;,pt:1.4},
+  {id:&#x27;caregiver&#x27;,name:&#x27;요양보호사&#x27;,pt:1.2,ratio:6.4},
+  {id:&#x27;office&#x27;,name:&#x27;사무원&#x27;,bonus:false},
+  {id:&#x27;cook&#x27;,name:&#x27;조리원&#x27;,pt:1.2,special:true},
+  {id:&#x27;driver&#x27;,name:&#x27;보조원(운전사)&#x27;,bonus:false},
+  {id:&#x27;rn&#x27;,name:&#x27;간호사 배치&#x27;,pt:.6,nurseBonus:true}
+];
+const $=id=&gt;document.getElementById(id), won=n=&gt;(Math.round(Number(n)||0)).toLocaleString(&#x27;ko-KR&#x27;)+&#x27;원&#x27;, num=id=&gt;Math.max(0,Number(String($(id).value).replace(/,/g,&#x27;&#x27;))||0);
+function formatCostInput(){let digits=$(&#x27;cost&#x27;).value.replace(/[^0-9]/g,&#x27;&#x27;);$(&#x27;cost&#x27;).value=digits?Number(digits).toLocaleString(&#x27;ko-KR&#x27;):&#x27;&#x27;}
+function blank(){return {users:0,cost:0,type:&#x27;normal&#x27;,capacity:80,meal:&#x27;direct&#x27;,serviceDays:30,overDays:0,custom:&#x27;0&#x27;,customOK:&#x27;0&#x27;,integrated:0,nightStaff:0,overCapacity:false,staffViolation:false,violationCount:0,staff:{}}}
+function allData(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(!raw)return {};
+    const parsed=JSON.parse(raw);
+    return parsed &amp;&amp; typeof parsed===&#x27;object&#x27; &amp;&amp; !Array.isArray(parsed) ? parsed : {};
+  }catch(e){return {}}
+}
+function writeData(data){
+  try{
+    localStorage.setItem(KEY,JSON.stringify(data));
+    return true;
+  }catch(e){
+    if(!window.__saveWarned){window.__saveWarned=true;try{alert(&#x27;이 화면에서는 브라우저 저장이 막혀 있어 월별 자료가 저장되지 않습니다. 계산은 정상 동작합니다.&#x27;)}catch(e){}}
+    return false;
+  }
+}
+function monthHasData(d){
+  if(!d || typeof d!==&#x27;object&#x27;) return false;
+  if(Number(d.users)&gt;0 || Number(String(d.cost||&#x27;&#x27;).replace(/,/g,&#x27;&#x27;))&gt;0 ||
+     Number(d.integrated)&gt;0 || Number(d.nightStaff)&gt;0 || Number(d.overDays)&gt;0 ||
+     Number(d.violationCount)&gt;0 || d.custom!==&#x27;0&#x27; || d.customOK===&#x27;1&#x27; ||
+     d.overCapacity===true || d.staffViolation===true) return true;
+  if(d.staff &amp;&amp; typeof d.staff===&#x27;object&#x27;){
+    for(const k in d.staff){
+      const x=d.staff[k]||{};
+      if(Number(x.act)&gt;0) return true;
+    }
+  }
+  return false;
+}
+function buildMonths(){
+  let saved=allData();
+  $(&#x27;months&#x27;).innerHTML=Array.from({length:12},(_,i)=&gt;{
+    const m=i+1, checked=monthHasData(saved[m]);
+    return `&lt;button class=&quot;month ${m===currentMonth?&#x27;active&#x27;:&#x27;&#x27;}&quot; data-m=&quot;${m}&quot;&gt;${m}월${checked?&#x27; ✓&#x27;:&#x27;&#x27;}&lt;/button&gt;`;
+  }).join(&#x27;&#x27;);
+  document.querySelectorAll(&#x27;.month&#x27;).forEach(b=&gt;b.onclick=()=&gt;{
+    safeSave(false);
+    currentMonth=+b.dataset.m;
+    buildMonths();
+    load();
+  });
+}
+function buildStaff(){ $(&#x27;staffBody&#x27;).innerHTML=roles.map(r=&gt;`&lt;tr id=&quot;row-${r.id}&quot;&gt;&lt;td&gt;${r.name}${r.pt?` &lt;span class=&quot;tag&quot;&gt;${r.nurseBonus?&#x27;별도 &#x27;:&#x27;&#x27;}${r.pt}점&lt;/span&gt;`:&#x27;&#x27;}&lt;/td&gt;&lt;td&gt;&lt;input class=&quot;staff required&quot; id=&quot;req-${r.id}&quot; type=&quot;number&quot; min=&quot;0&quot; step=&quot;0.1&quot; value=&quot;0&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;input class=&quot;staff actual&quot; id=&quot;act-${r.id}&quot; type=&quot;number&quot; min=&quot;0&quot; step=&quot;0.1&quot; value=&quot;0&quot;&gt;&lt;/td&gt;&lt;td id=&quot;extra-${r.id}&quot;&gt;-&lt;/td&gt;&lt;td class=&quot;score&quot; id=&quot;score-${r.id}&quot;&gt;-&lt;/td&gt;&lt;/tr&gt;`).join(&#x27;&#x27;) }
+function suggested(){let u=num(&#x27;users&#x27;),c=num(&#x27;capacity&#x27;),meal=$(&#x27;meal&#x27;).value,isShort=$(&#x27;type&#x27;).value===&#x27;short&#x27;;return {director:1,social:1,nurse:1,therapist:isShort?1:0,caregiver:Math.max(1,Math.ceil(u/(isShort?4:7))),office:!isShort&amp;&amp;c&gt;=25?1:0,cook:meal===&#x27;direct&#x27;?1:0,driver:isShort?0:1,rn:0}}
+function applyRequired(persist=true){
+  let x=suggested();
+  roles.forEach(r=&gt;$(&#x27;req-&#x27;+r.id).value=x[r.id]);
+  calculate();
+  if(persist)save();
+}
+function cap(u){if(u&lt;5)return 1.4;if(u&lt;10)return 2.6;if(u&lt;30)return 4;if(u&lt;50)return 6.4;if(u&lt;70)return 8.8;if(u&lt;80)return 10;if(u&lt;90)return 11.2;if(u&lt;120)return 13.6;return 14.8}
+function extraCap(u,careExtra){if(u&lt;10)return 0;let low,high;if(u&lt;30)[low,high]=[3,4];else if(u&lt;50)[low,high]=[4,5];else if(u&lt;70)[low,high]=[5,6];else if(u&lt;90)[low,high]=[6,7];else if(u&lt;120){if(careExtra&gt;=9)return 3.6;[low,high]=[7,8]}else{if(careExtra&gt;=10)return 3.6;[low,high]=[8,9]}return careExtra&gt;=high?2.4:careExtra&gt;=low?1.2:0}
+function round10(x){return Math.round(x/10)*10}
+function calculate(){
+  let u=num(&#x27;users&#x27;),cost=num(&#x27;cost&#x27;),kind=$(&#x27;type&#x27;).value,isShort=kind===&#x27;short&#x27;,service=isShort?2:(kind===&#x27;dementia&#x27;?1.3:1.5),base=cost*.85,coreRaw=0,cookScore=0,rnScore=0,violations=[],roleCalc={};
+  roles.forEach(r=&gt;{
+    let req=num(&#x27;req-&#x27;+r.id),act=num(&#x27;act-&#x27;+r.id),extra=Math.max(0,Math.floor((act-req)+1e-9)),eligible=extra;
+    if(r.id===&#x27;caregiver&#x27;&amp;&amp;extra&gt;0&amp;&amp;u/act&gt;=(isShort?3.75:(kind===&#x27;dementia&#x27;?3.9:6.4)))eligible=0;
+    if(r.id===&#x27;nurse&#x27;&amp;&amp;extra&gt;0&amp;&amp;u/act&gt;=19)eligible=0;
+    let score=0;
+    if(r.id===&#x27;cook&#x27;){eligible=(!isShort&amp;&amp;$(&#x27;meal&#x27;).value===&#x27;direct&#x27;&amp;&amp;extra&gt;=1)?extra:0;score=eligible?1.2:0;cookScore=score}
+    else if(r.id===&#x27;rn&#x27;){eligible=Math.floor(act+1e-9);score=eligible*.6;rnScore=score}
+    else if(r.pt) {score=eligible*r.pt;coreRaw+=score}
+    roleCalc[r.id]={req,act,extra,eligible,score};
+    $(&#x27;extra-&#x27;+r.id).textContent=r.bonus===false?&#x27;-&#x27;:eligible+&#x27;명&#x27;; $(&#x27;score-&#x27;+r.id).textContent=r.bonus===false?&#x27;-&#x27;:score.toFixed(1)+&#x27;점&#x27;;
+    let row=$(&#x27;row-&#x27;+r.id);row.classList.toggle(&#x27;row-bad&#x27;,act&lt;req);row.classList.toggle(&#x27;row-good&#x27;,act&gt;=req&amp;&amp;score&gt;0);if(act&lt;req)violations.push(r.name);
+  });
+  let careExtra=Math.max(0,Math.floor(num(&#x27;act-caregiver&#x27;)-num(&#x27;req-caregiver&#x27;)+1e-9));
+  let basicCap=cap(u),plusCap=extraCap(u,careExtra),staffScore=Math.min(coreRaw,basicCap+plusCap);
+  let violationCount=num(&#x27;violationCount&#x27;);
+  if($(&#x27;staffViolation&#x27;).checked &amp;&amp; violationCount&gt;=3) staffScore=0;
+  let customRequested=Number($(&#x27;custom&#x27;).value)||0;
+  let customScore=(kind!==&#x27;dementia&#x27; &amp;&amp; $(&#x27;customOK&#x27;).value===&#x27;1&#x27;)?customRequested:0;
+  let nightCount=Math.floor(num(&#x27;nightStaff&#x27;));
+  let dayHealth=num(&#x27;act-caregiver&#x27;)+num(&#x27;act-nurse&#x27;);
+  let nightRatioOK=nightCount&gt;0 &amp;&amp; (u/nightCount)&lt;=20;
+  let dayDoubleOK=nightCount&gt;0 &amp;&amp; dayHealth&gt;=nightCount*2;
+  let nightScore=(isShort &amp;&amp; nightRatioOK &amp;&amp; dayDoubleOK)?nightCount*.9:0;
+  let serviceDays=Math.max(1,num(&#x27;serviceDays&#x27;)),overDays=Math.min(serviceDays,num(&#x27;overDays&#x27;));
+  let adjustment=Math.max(0,1-overDays/serviceDays);
+  staffScore*=adjustment;cookScore*=adjustment;rnScore*=adjustment;customScore*=adjustment;nightScore*=adjustment;
+  let totalScore=staffScore+cookScore+rnScore+customScore+nightScore;
+  let factor=u&gt;0?base/u*service:0;let staffAmt=round10(factor*staffScore),cookAmt=round10(factor*cookScore),rnAmt=round10(factor*rnScore),customAmt=round10(factor*customScore),nightAmt=round10(factor*nightScore),integratedAmt=isShort?0:num(&#x27;integrated&#x27;)*100000,total=staffAmt+cookAmt+rnAmt+customAmt+nightAmt+integratedAmt;
+  $(&#x27;baseAmount&#x27;).textContent=won(base);$(&#x27;totalScore&#x27;).textContent=totalScore.toFixed(2).replace(/\.00$/,&#x27;&#x27;)+&#x27;점&#x27;;$(&#x27;baseCap&#x27;).textContent=basicCap.toFixed(1)+&#x27;점&#x27;+(plusCap?` (+${plusCap.toFixed(1)})`:&#x27;&#x27;);$(&#x27;serviceScore&#x27;).textContent=service.toFixed(1)+&#x27;점&#x27;;$(&#x27;staffAmount&#x27;).textContent=won(staffAmt);$(&#x27;cookAmount&#x27;).textContent=won(cookAmt);$(&#x27;rnAmount&#x27;).textContent=won(rnAmt);$(&#x27;customAmount&#x27;).textContent=won(customAmt);$(&#x27;nightAmount&#x27;).textContent=won(nightAmt);$(&#x27;integratedAmount&#x27;).textContent=won(integratedAmt);$(&#x27;totalAmount&#x27;).textContent=won(total);$(&#x27;resultMonth&#x27;).textContent=currentMonth+&#x27;월 &#x27;+(isShort?&#x27;단기보호&#x27;:&#x27;주야간보호&#x27;)+&#x27; 예상 결과&#x27;;
+  $(&#x27;nightHelp&#x27;).textContent=isShort?(nightCount&gt;0?(nightRatioOK&amp;&amp;dayDoubleOK?`야간직원 ${nightCount}명 × 0.9점, 정원초과 조정 후 ${nightScore.toFixed(2)}점 적용 (${won(nightAmt)})`:`야간직원 요건 미충족: 1인당 입소자 20명 이하 및 주간 요양보호사+간호(조무)사 ${nightCount*2}명 이상을 확인하세요.`):&#x27;요건을 충족한 야간직원 수를 입력하면 1인당 0.9점이 적용됩니다.&#x27;):(nightCount&gt;0?&#x27;야간직원 가산은 기관 유형을 단기보호로 선택해야 적용됩니다.&#x27;:&#x27;기관 유형을 단기보호로 선택하면 1인당 0.9점이 적용됩니다.&#x27;);
+  let audit=$(&#x27;shortAudit&#x27;);audit.hidden=!isShort;if(isShort){
+    let item=(label,score,reason)=&gt;`&lt;li&gt;${label}&lt;b&gt;${score&gt;0?score.toFixed(1)+&#x27;점 적용&#x27;:reason}&lt;/b&gt;&lt;/li&gt;`;
+    audit.innerHTML=`&lt;h3&gt;✓ 단기보호 계산 모드 정상 적용 중 · 서비스유형점수 2점&lt;/h3&gt;&lt;ul&gt;`+
+      item(&#x27;요양보호사 추가배치&#x27;,roleCalc.caregiver.score,roleCalc.caregiver.extra&gt;0?&#x27;3.75명 미만 요건 불충족&#x27;:&#x27;추가인원 없음&#x27;)+
+      item(&#x27;사회복지사 추가배치&#x27;,roleCalc.social.score,&#x27;추가인원 없음&#x27;)+
+      item(&#x27;간호(조무)사 추가배치&#x27;,roleCalc.nurse.score,roleCalc.nurse.extra&gt;0?&#x27;19명 미만 요건 불충족&#x27;:&#x27;추가인원 없음&#x27;)+
+      item(&#x27;물리·작업치료사 추가배치&#x27;,roleCalc.therapist.score,&#x27;추가인원 없음&#x27;)+
+      item(&#x27;간호사 배치&#x27;,rnScore,&#x27;간호사 인원 없음&#x27;)+
+      item(&#x27;맞춤형서비스&#x27;,customScore,&#x27;해당 없음&#x27;)+
+      item(&#x27;야간직원 배치&#x27;,nightScore,&#x27;가산인원 없음&#x27;)+`&lt;/ul&gt;`;
+  }
+  let st=$(&#x27;status&#x27;);if(!u||!cost){st.className=&#x27;status warn&#x27;;st.textContent=&#x27;월평균 입소자 수와 가산금을 제외한 월 급여비용을 입력해 주세요.&#x27;}else if($(&#x27;staffViolation&#x27;).checked||violations.length){st.className=&#x27;status bad&#x27;;st.textContent=&#x27;인력배치기준 확인 필요: &#x27;+(violations.join(&#x27;, &#x27;)||&#x27;위반 항목 체크됨&#x27;)+&#x27;. 위반 직종은 가산이 제외될 수 있습니다.&#x27;}else if($(&#x27;overCapacity&#x27;).checked){st.className=&#x27;status bad&#x27;;st.textContent=&#x27;정원초과 발생일수 비율에 따라 일부 가산이 제외될 수 있어 표시 금액과 달라질 수 있습니다.&#x27;}else if(totalScore&lt;=0){st.className=&#x27;status warn&#x27;;st.textContent=&#x27;급여비용은 입력되었지만 적용 가능한 가산점수가 0점입니다. 실제 배치인력이 법정 배치보다 추가되었는지 또는 다른 가산 요건을 충족했는지 확인해 주세요.&#x27;}else{st.className=&#x27;status ok&#x27;;st.textContent=`가산금을 제외한 월 급여비용을 기준으로 계산한 예상값입니다. 적용 가산점수 ${totalScore.toFixed(2)}점, 예상 월 가산금액 ${won(total)}입니다.`}
+}
+function collect(){let d={users:num(&#x27;users&#x27;),cost:num(&#x27;cost&#x27;),type:$(&#x27;type&#x27;).value,capacity:num(&#x27;capacity&#x27;),meal:$(&#x27;meal&#x27;).value,serviceDays:num(&#x27;serviceDays&#x27;),overDays:num(&#x27;overDays&#x27;),custom:$(&#x27;custom&#x27;).value,customOK:$(&#x27;customOK&#x27;).value,integrated:num(&#x27;integrated&#x27;),nightStaff:num(&#x27;nightStaff&#x27;),overCapacity:$(&#x27;overCapacity&#x27;).checked,staffViolation:$(&#x27;staffViolation&#x27;).checked,violationCount:num(&#x27;violationCount&#x27;),staff:{}};roles.forEach(r=&gt;d.staff[r.id]={req:num(&#x27;req-&#x27;+r.id),act:num(&#x27;act-&#x27;+r.id)});return d}
+function save(){
+  let a=allData();
+  a[currentMonth]=collect();
+  if(writeData(a)){
+    $(&#x27;saveState&#x27;).textContent=&#x27;저장됨&#x27;;
+    setTimeout(()=&gt;$(&#x27;saveState&#x27;).textContent=&#x27;자동 저장&#x27;,700);
+    return true;
+  }
+  return false;
+}
+function load(){
+  const stored=allData();
+  const hasSaved=Object.prototype.hasOwnProperty.call(stored,currentMonth);
+  let d=hasSaved?stored[currentMonth]:blank();
+  [&#x27;users&#x27;,&#x27;type&#x27;,&#x27;capacity&#x27;,&#x27;meal&#x27;,&#x27;serviceDays&#x27;,&#x27;overDays&#x27;,&#x27;custom&#x27;,&#x27;customOK&#x27;,&#x27;integrated&#x27;,&#x27;nightStaff&#x27;,&#x27;violationCount&#x27;].forEach(k=&gt;$(k).value=(d[k]!==undefined&amp;&amp;d[k]!==null)?d[k]:blank()[k]);
+  $(&#x27;cost&#x27;).value=Number(d.cost||0).toLocaleString(&#x27;ko-KR&#x27;);
+  $(&#x27;overCapacity&#x27;).checked=!!d.overCapacity;
+  $(&#x27;staffViolation&#x27;).checked=!!d.staffViolation;
+  if(d.staff&amp;&amp;Object.keys(d.staff).length){
+    roles.forEach(r=&gt;{
+      $(&#x27;req-&#x27;+r.id).value=((d.staff[r.id]||{}).req||0);
+      $(&#x27;act-&#x27;+r.id).value=((d.staff[r.id]||{}).act||0);
+    });
+  }else{
+    // 초기화/새 월을 불러올 때 기본 법정인원은 화면에만 표시하고 자동 저장하지 않음
+    applyRequired(false);
+    roles.forEach(r=&gt;$(&#x27;act-&#x27;+r.id).value=0);
+  }
+  calculate();
+}
+
+buildMonths();buildStaff();load();
+function handleInput(el){
+  if(el.id===&#x27;cost&#x27;)formatCostInput();
+  if([&#x27;users&#x27;,&#x27;type&#x27;,&#x27;capacity&#x27;,&#x27;meal&#x27;].includes(el.id)){let x=suggested();roles.forEach(r=&gt;$(&#x27;req-&#x27;+r.id).value=x[r.id])}
+  calculate();save()
+}
+document.querySelectorAll(&#x27;input,select&#x27;).forEach(el=&gt;{el.addEventListener(&#x27;input&#x27;,()=&gt;handleInput(el));el.addEventListener(&#x27;change&#x27;,()=&gt;handleInput(el))});
+// ===== v5 버튼 기능 안정화 =====
+function setSaveState(msg,ms){
+  $(&#x27;saveState&#x27;).textContent=msg;
+  if(ms)setTimeout(function(){$(&#x27;saveState&#x27;).textContent=&#x27;자동 저장&#x27;},ms);
+}
+function safeSave(showMessage){
+  try{
+    var a=allData();
+    a[currentMonth]=collect();
+    localStorage.setItem(KEY,JSON.stringify(a));
+    if(showMessage)setSaveState(currentMonth+&#x27;월 저장 완료&#x27;,1400);
+    return true;
+  }catch(err){
+    alert(&#x27;저장에 실패했습니다: &#x27;+(err&amp;&amp;err.message?err.message:&#x27;저장공간을 확인해 주세요.&#x27;));
+    return false;
+  }
+}
+
+
+
+
+
+
+
+function resetCurrentMonth(){
+  // confirm에 의존하지 않음: 모바일 파일뷰어에서 confirm이 막히는 사례 방지
+  var a=allData();
+  delete a[currentMonth];
+  try{localStorage.setItem(KEY,JSON.stringify(a));}
+  catch(err){alert(&#x27;초기화 저장에 실패했습니다.&#x27;);return;}
+  buildMonths(); load(); buildMonths();
+  setSaveState(currentMonth+&#x27;월 초기화 완료&#x27;,1800);
+}
+function resetAllMonths(){
+  try{localStorage.removeItem(KEY);}
+  catch(err){alert(&#x27;전체 초기화에 실패했습니다.&#x27;);return;}
+  currentMonth=1; buildMonths(); load(); buildMonths();
+  setSaveState(&#x27;12개월 전체 초기화 완료&#x27;,1800);
+}
+
+$(&#x27;autoRequired&#x27;).addEventListener(&#x27;click&#x27;,function(){applyRequired(true);});
+$(&#x27;saveBtn&#x27;).addEventListener(&#x27;click&#x27;,function(){if(safeSave(true))buildMonths();});
+
+
+
+
+$(&#x27;resetBtn&#x27;).addEventListener(&#x27;click&#x27;,resetCurrentMonth);
+$(&#x27;resetAllBtn&#x27;).addEventListener(&#x27;click&#x27;,resetAllMonths);
+
+
+
+
+
+
+&lt;/script&gt;
+
+&lt;/body&gt;&lt;/html&gt;" style="display:block;width:100%;height:3000px;border:1px solid #d9dee7;border-radius:16px;background:#f3f6fa"></iframe>
+</div>
+
+<div id="pageRates" class="page">
+ <div class="card">
+  <div style="background:linear-gradient(145deg,#173b5d,#285f85);color:#fff;border-radius:10px;padding:18px;margin-bottom:16px;border-bottom:4px solid #e9b949">
+  <h1 style="color:#fff!important;margin:0 0 7px">2026년 장기요양급여 수가표</h1>
+  <div style="font-size:13px;opacity:.88">마음주간보호센터 · 프로그램에 적용된 2026년 급여수가 기준표</div>
+  </div>
+  <div class="claim-disclaimer" style="margin:12px 0;padding:10px 12px;background:#fff8e6;border:1px solid #ead59a;border-left:4px solid #d7a72b;border-radius:7px;font-size:13px;line-height:1.6;color:#5b4a22;">※ 본 프로그램의 계산 결과는 예상값이며, 실제 공단 청구 및 지급 결과와 다를 수 있습니다.</div>
+
+  <div class="rate-section">
+   <h3>재가급여 월 한도액</h3>
+   <table class="rate-table rate-table-centered"><thead><tr><th>등급</th><th>월 한도액</th></tr></thead><tbody>
+    <tr><td>1등급</td><td>2,512,900원</td></tr><tr><td>2등급</td><td>2,331,200원</td></tr>
+    <tr><td>3등급</td><td>1,528,200원</td></tr><tr><td>4등급</td><td>1,409,700원</td></tr>
+    <tr><td>5등급</td><td>1,208,900원</td></tr><tr><td>인지지원등급</td><td>676,320원</td></tr>
+   </tbody></table>
+  </div>
+
+  <div class="rate-section">
+   <h3>② 주간보호 수가</h3>
+   <table id="daycareRateTable" class="rate-table rate-table-centered"><thead><tr><th>이용시간</th><th>1등급</th><th>2등급</th><th>3등급</th><th>4등급</th><th>5등급</th><th>인지지원</th></tr></thead><tbody>
+    <tr><td>3~6시간 미만</td><td>41,820원</td><td>38,720원</td><td>35,740원</td><td>34,120원</td><td>32,490원</td><td>32,490원</td></tr>
+    <tr><td>6~8시간 미만</td><td>56,060원</td><td>51,930원</td><td>47,940원</td><td>46,300원</td><td>44,650원</td><td>44,650원</td></tr>
+    <tr><td>8~10시간 미만</td><td>69,730원</td><td>64,590원</td><td>59,640원</td><td>58,010원</td><td>56,360원</td><td>56,360원</td></tr>
+    <tr><td>10~13시간 이하</td><td>76,820원</td><td>71,160원</td><td>65,750원</td><td>64,090원</td><td>62,460원</td><td>56,360원</td></tr>
+    <tr><td>13시간 초과</td><td>82,370원</td><td>76,310원</td><td>70,500원</td><td>68,860원</td><td>67,240원</td><td>56,360원</td></tr>
+   </tbody></table>
+  </div>
+
+  <div class="rate-section">
+   <h3>③ 방문요양 수가</h3>
+   <table class="rate-table rate-table-centered"><thead><tr><th>시간</th><th>수가</th></tr></thead><tbody>
+<tr><td>30분</td><td>17,450</td></tr>
+<tr><td>60분</td><td>25,320</td></tr>
+<tr><td>90분</td><td>34,120</td></tr>
+<tr><td>120분</td><td>43,430</td></tr>
+<tr><td>150분</td><td>50,640</td></tr>
+<tr><td>180분</td><td>57,020</td></tr>
+<tr><td>210분</td><td>63,530</td></tr>
+<tr><td>240분</td><td>70,080</td></tr>
+<tr><td>270분</td><td>70,080</td></tr>
+<tr><td>300분</td><td>87,530</td></tr>
+<tr><td>330분</td><td>95,400</td></tr>
+<tr><td>360분</td><td>104,200</td></tr>
+<tr><td>390분</td><td>113,510</td></tr>
+<tr><td>420분</td><td>120,720</td></tr>
+<tr><td>450분</td><td>127,100</td></tr>
+<tr><td>480분</td><td>140,160</td></tr>
+</tbody></table>
+  </div>
+
+  <div class="rate-section">
+   <h3>④ 방문목욕 수가</h3>
+   <table class="rate-table rate-table-centered"><thead><tr><th>구분</th><th>수가</th></tr></thead><tbody>
+    <tr><td>60분 이상 차량내 목욕</td><td>88,990원</td></tr>
+    <tr><td>40분~60분 미만 차량내 목욕</td><td>71,190원</td></tr>
+    <tr><td>60분 이상 차량이용하여 (가정 내목욕)</td><td>80,230원</td></tr>
+    <tr><td>40분~60분 미만 차량이용하여 (가정 내목욕)</td><td>64,180원</td></tr>
+    <tr><td>60분 이상 가정내 목욕</td><td>50,100원</td></tr>
+    <tr><td>40분~60분 미만 가정내 목욕</td><td>40,080원</td></tr>
+   </tbody></table>
+  </div>
+
+  <div class="rate-section">
+   <h3>⑤ 방문간호 수가</h3>
+   <table class="rate-table rate-table-centered"><thead><tr><th>시간</th><th>수가</th></tr></thead><tbody>
+    <tr><td>15~30분 미만</td><td>42,880원</td></tr>
+    <tr><td>30~60분 미만</td><td>53,770원</td></tr>
+    <tr><td>60분 이상</td><td>64,690원</td></tr>
+   </tbody></table>
+  </div>
+
+  <div class="rate-section">
+   <h3>방문요양 급여비용 산정 핵심 정리 (제19조)</h3>
+   <div class="note" style="margin-bottom:12px">
+    <b>고시 용어를 쉽게 풀어 썼습니다.</b><br>
+    가-1 = 30분, 가-2 = 60분, 가-3 = 90분, 가-4 = 120분, 가-5 = 150분, 가-6 = 180분, 가-7 = 210분, 가-8 = 240분 방문요양 수가를 뜻합니다.<br>
+    아래 설명에서는 ‘가-1~가-8’, ‘제17조제5항’ 같은 조문 기호 대신 실제 시간과 필요한 내용을 직접 표시했습니다.
+   </div>
+   <table class="rate-table">
+    <thead><tr><th>구분</th><th>핵심 내용</th></tr></thead>
+    <tbody>
+     <tr><td>1일 이용 횟수</td><td><b>30분·60분·90분·120분·150분·180분 방문요양</b>은 같은 수급자에게 하루 최대 3회까지 산정할 수 있습니다. 각 방문 사이에는 2시간 이상 간격이 필요하며, 2시간 미만이면 두 방문의 제공시간을 합쳐 1회로 계산합니다.</td></tr>
+     <tr><td>210분·240분 방문요양</td><td><b>210분 또는 240분 방문요양</b>은 원칙적으로 1·2등급 수급자에게 하루 1회 산정합니다. 같은 날 30~180분 방문요양을 추가로 함께 산정할 수 없습니다.</td></tr>
+     <tr><td>240~270분 미만</td><td>1·2등급 수급자에게 한 번에 240분 이상 270분 미만 제공한 경우 <b>240분 방문요양 수가</b>를 적용합니다.</td></tr>
+     <tr><td>장시간 연속급여 특례</td><td>특별한 요청이 있는 경우 1·2등급은 월 8일에 한하여 270분 이상, 3·4등급은 월 4일에 한하여 210분 이상 연속 제공 가능. 동의 내용과 요청사유를 급여제공기록지에 기재.</td></tr>
+     <tr><td>270분 이상 장시간 제공</td><td>장시간 방문요양 특례에 해당하면 최초 270분 구간은 <b>240분 방문요양 수가</b>를 적용하고, 270분을 넘는 나머지 시간은 실제 제공시간에 해당하는 방문요양 수가를 추가 적용합니다. 한 번에 480분 이상 연속 제공한 경우에는 240분 수가를 2회 산정합니다.</td></tr><tr><td>계산기 장시간 선택</td><td>시간/유형 목록에서 <b>270·300·330·360·390·420·450·480분</b>을 선택할 수 있습니다. 270분은 240분 수가, 300~450분은 240분 수가에 270분 초과시간에 해당하는 기본 수가를 더하며, 480분은 240분 수가를 2회 적용하도록 계산기에 반영했습니다.</td></tr>
+     <tr><td>3·4등급 장시간급여</td><td>특별한 요청에 따른 장시간 제공 시 3·4등급은 한 번에 <b>210분 이상이면 210분 수가</b>, <b>240분 이상 270분 미만이면 240분 수가</b>를 적용합니다. 하루 1회만 인정되며 같은 날 다른 방문요양 수가를 추가 산정하지 않습니다.</td></tr>
+     <tr><td>날짜 변경</td><td>급여 중 날짜가 바뀌면 급여를 시작한 날의 급여비용으로 산정. 다음 날 산정을 위한 방문간격은 2시간 이상.</td></tr>
+     <tr><td>요양보호사 2인</td><td>수급자의 신체·정신 상태 때문에 불가피하게 같은 기관의 요양보호사 2명이 동시에 서비스를 제공한 경우, <b>각 요양보호사별로 30분·60분·90분·120분·150분 수가</b> 중 실제 제공시간에 해당하는 금액을 산정할 수 있습니다. 수급자 동의와 당시 상태를 급여제공기록지에 기록해야 합니다.</td></tr>
+     <tr><td>인지활동형 방문요양</td><td>치매전문교육을 이수한 요양보호사가 프로그램관리자의 계획에 따라 제공합니다. 원칙적으로 <b>수급자당 하루 1회, 120~180분</b> 제공하고 그중 <b>60분은 인지자극활동</b>, 나머지는 잔존기능 유지·향상을 위한 일상생활 함께하기 훈련으로 구성합니다. 부득이한 예외사유가 있으면 기준시간보다 짧아도 산정할 수 있으며 사유를 기록해야 합니다.</td></tr>
+     <tr><td>프로그램관리자</td><td>치매전문교육을 이수하고 기관에 상근하는 시설장(관리책임자), 사회복지사, 간호(조무)사, 물리·작업치료사 등이 담당할 수 있습니다. <b>개별 프로그램 계획 수립, 급여제공 모니터링·지도, 가족상담, 월 1회 이상 수급자 가정 방문</b> 등의 업무를 수행해야 합니다. 필요한 업무를 하지 않으면 해당 월 인지활동형 방문요양 급여비용을 산정할 수 없으며, 퇴사·입원·사망 등 고시상 예외가 있습니다.</td></tr>
+    </tbody>
+   </table>
+  </div>
+
+  <div class="rate-section">
+   <h3>방문요양 중증 수급자 가산 (제19조의2)</h3>
+   <table class="rate-table">
+    <thead><tr><th>대상 / 제공시간</th><th>가산액</th></tr></thead>
+    <tbody>
+     <tr><td>1·2등급 · 1회 60분 이상 120분 미만</td><td>2,000원</td></tr>
+     <tr><td>1·2등급 · 1회 120분 이상 180분 미만</td><td>4,000원</td></tr>
+     <tr><td>1·2등급 · 1회 180분 이상</td><td>6,000원</td></tr>
+     <tr><td>1일 상한</td><td>수급자 1인당 6,000원</td></tr>
+     <tr><td>수급자 부담</td><td>중증 수급자 가산비용은 수급자가 부담하지 않으며, 기관장은 해당 요양보호사에게 지급.</td></tr>
+    </tbody>
+   </table>
+   <div class="note">※ 방문요양 중증수당은 1·2등급 수급자에게 적용되며 수급자가 부담하지 않습니다. 주간보호와 방문간호에는 이 중증수당 열을 표시하지 않습니다.</div>
+  </div>
+
+  <div class="rate-section">
+   <h3>방문목욕 중증 수급자 가산 (제26조의2)</h3>
+   <table class="rate-table">
+    <thead><tr><th>구분</th><th>기준</th></tr></thead>
+    <tbody>
+     <tr><td>대상</td><td>장기요양 1등급 또는 2등급 수급자</td></tr>
+     <tr><td>제공시간</td><td>방문목욕급여 1회 60분 이상</td></tr>
+     <tr><td>가산액</td><td>요양보호사 1인당 3,000원</td></tr>
+     <tr><td>1일 상한</td><td>수급자 1인당 최대 6,000원</td></tr>
+     <tr><td>가족 요양보호사</td><td>가족인 요양보호사가 제공한 경우 중증수당 가산 제외</td></tr>
+     <tr><td>수급자 부담</td><td>가산비용은 수급자가 부담하지 않으며 기관장이 해당 요양보호사에게 지급</td></tr>
+    </tbody>
+   </table>
+   <div class="note">※ 현재 계산기는 방문목욕의 차량이용 유형과 ‘60분 이상 가정내 목욕’에 1회 6,000원을 자동 표시합니다. ‘40분~60분 미만 가정내 목욕’은 실제 제공시간이 60분 이상인지 확인할 수 없으므로 자동 가산하지 않습니다.</div>
+  </div>
+  <div class="note">※ 본 수가표는 현재 자동계산 프로그램에 입력된 2026년 수가를 한눈에 확인하기 위한 페이지입니다.</div>
+ </div>
+</div>
+</div>
+
+<script>
+
+function formatDuration(totalMinutes){const m=Math.max(0,Math.round(Number(totalMinutes)||0));const h=Math.floor(m/60);const r=m%60;return h.toLocaleString("ko-KR")+"시간"+(r?" "+r+"분":"");}
+function showPage(name){
+ const map={calc:['pageCalc','tabCalc'],visitbonus:['pageVisitBonus','tabVisitBonus'],bonus:['pageBonus','tabBonus'],daymonthly:['pageDayMonthly','tabDayMonthly'],rates:['pageRates','tabRates']};
+ Object.values(map).forEach(x=>{const p=document.getElementById(x[0]),b=document.getElementById(x[1]);if(p)p.classList.remove('active');if(b)b.classList.remove('active')});
+ const t=map[name]||map.calc;
+ document.getElementById(t[0]).classList.add('active');document.getElementById(t[1]).classList.add('active');
+ window.scrollTo({top:0,behavior:'smooth'});
+}
+
+const limits={1:2512900,2:2331200,3:1528200,4:1409700,5:1208900,cog:676320};
+
+const configs={
+"방문요양":{
+  "30분":17450,
+  "60분":25320,
+  "90분":34120,
+  "120분":43430,
+  "150분":50640,
+  "180분":57020,
+  "210분":63530,
+  "240분":70080,
+  "270분":70080,
+  "300분":87530,
+  "330분":95400,
+  "360분":104200,
+  "390분":113510,
+  "420분":120720,
+  "450분":127100,
+  "480분":140160
+},
+"방문목욕":{
+  "60분 이상 차량내 목욕":88990,
+  "40분~60분 미만 차량내 목욕":71190,
+  "60분 이상 차량이용하여 (가정 내목욕)":80230,
+  "40분~60분 미만 차량이용하여 (가정 내목욕)":64180,
+  "60분 이상 가정내 목욕":50100,
+  "40분~60분 미만 가정내 목욕":40080
+ },
+"주간보호":{
+  "3시간 이상~6시간 미만":{1:41820,2:38720,3:35740,4:34120,5:32490,cog:32490},
+  "6시간 이상~8시간 미만":{1:56060,2:51930,3:47940,4:46300,5:44650,cog:44650},
+  "8시간 이상~10시간 미만":{1:69730,2:64590,3:59640,4:58010,5:56360,cog:56360},
+  "10시간 이상~13시간 이하":{1:76820,2:71160,3:65750,4:64090,5:62460,cog:56360},
+  "13시간 초과":{1:82370,2:76310,3:70500,4:68860,5:67240,cog:56360}
+},
+"방문간호":{
+  "15분~30분 미만":42880,"30분~60분 미만":53770,"60분 이상":64690
+}
+};
+
+const order=["주간보호","방문요양","방문목욕","방문간호"];
+const rows={};
+
+function won(n){return Math.round(n).toLocaleString("ko-KR")+"원"}
+function price(service,opt,grade){
+ const v=configs[service][opt]; return typeof v==="object"?v[grade]:v;
+}
+function optionLabel(service,opt,grade){
+ const v=price(service,opt,grade);
+ return service==="주간보호" ? `${opt} · ${won(v)}` : opt;
+}
+function createCard(service){
+ const card=document.createElement("div"); card.className="card"; card.id=({"주간보호":"service-day","방문요양":"service-care","방문목욕":"service-bath","방문간호":"service-nurse"})[service];
+ card.innerHTML=`<h2>${service}</h2>
+ <table><thead><tr><th>시간 / 유형 목록</th><th class="money">수가(자동)</th><th>횟수</th>${service==="방문목욕"?"":'<th>공휴일 횟수</th><th class="money">공휴일 가산금</th>'}<th class="money">사용금액(가산포함)</th>${(service==="방문요양"||service==="방문목욕")?'<th class="money">중증수당</th>':""}<th></th></tr></thead>
+ <tbody id="tb-${service}"></tbody></table>
+ <div class="note" style="margin-top:8px">※ 공휴일 횟수는 전체 이용횟수에 포함된 횟수로 입력합니다. 현재 공휴일 가산은 기본수가의 30%로 계산하여 총 사용금액에 자동 반영합니다.</div>\n <div class="service-detail-summary" data-service="${service}"></div><div class="section-action-row"><button class="add" type="button">+ 항목 추가</button><button class="section-reset-btn" type="button">초기화</button></div>`;
+ card.querySelector(".add").onclick=()=>addRow(service);
+ card.querySelector(".section-reset-btn").onclick=()=>resetService(service);
+ document.getElementById("services").appendChild(card);
+ rows[service]=[];
+ addRow(service);
+}
+function addRow(service){
+ const tb=document.getElementById("tb-"+service);
+ const tr=document.createElement("tr");
+ const opts=Object.keys(configs[service]);
+ const grade=document.getElementById("grade").value;
+ tr.innerHTML=`<td><select class="opt">${opts.map(x=>`<option value="${x}">${optionLabel(service,x,grade)}</option>`).join("")}</select></td>
+ <td class="money rate">0원</td>
+ <td><input class="count" type="number" min="0" step="1" value="0"></td>
+ ${service==="방문목욕"?"":'<td><input class="holiday-count count" type="number" min="0" step="1" value="0"></td><td class="money holiday-bonus">0원</td>'}
+ <td class="money amount">0원</td>
+ ${(service==="방문요양"||service==="방문목욕")?'<td class="money severe">0원</td>':""}
+ <td><button class="del" type="button">삭제</button></td>`;
+ tb.appendChild(tr); rows[service].push(tr);
+ tr.querySelector(".opt").onchange=calc;
+ tr.querySelector(".count").oninput=calc;
+ if(tr.querySelector(".holiday-count")) tr.querySelector(".holiday-count").oninput=calc;
+ tr.querySelector(".del").onclick=()=>{ if(rows[service].length>1){rows[service]=rows[service].filter(r=>r!==tr);tr.remove();calc();} else {tr.querySelector(".count").value=0;calc();}};
+ if(order.every(name=>rows[name] && rows[name].length)) calc();
+}
+function resetService(service){
+ const list=rows[service]||[];
+ list.slice(1).forEach(tr=>tr.remove());
+ if(!list.length){addRow(service);return;}
+ rows[service]=[list[0]];
+ const tr=list[0], opt=tr.querySelector(".opt");
+ if(opt)opt.selectedIndex=0;
+ tr.querySelectorAll(".count").forEach(input=>input.value="0");
+ calc();
+}
+function refreshDaycareOptions(grade){
+ for(const tr of rows["주간보호"]||[]){
+   const sel=tr.querySelector(".opt");
+   const current=sel.value;
+   [...sel.options].forEach(o=>{ o.textContent=optionLabel("주간보호",o.value,grade); });
+   sel.value=current;
+ }
+}
+function severeCareAllowance(service,opt,grade,cnt){
+ if(!(grade==="1" || grade==="2")) return 0;
+
+ // 방문요양 중증 수급자 가산
+ if(service==="방문요양"){
+   const min=parseInt(opt,10)||0;
+   let per=0;
+   if(min>=180) per=6000;
+   else if(min>=120) per=4000;
+   else if(min>=60) per=2000;
+   return per*cnt;
+ }
+
+ // 방문목욕 중증 수급자 가산
+ // 1·2등급, 1회 60분 이상 제공 시 요양보호사 1인당 3,000원.
+ // 통상 2인 제공을 기준으로 1회 최대 6,000원 표시.
+ // '40분~60분 미만 가정내 목욕'은 60분 이상 여부를 알 수 없어 자동가산하지 않음.
+ if(service==="방문목욕"){
+   const eligible60 =
+     opt.indexOf("60분 이상(차량이용")===0 ||
+     opt.indexOf("60분 이상")!==-1;
+   return eligible60 ? 6000*cnt : 0;
+ }
+ return 0;
+}
+
+function calc(){
+ const grade=document.getElementById("grade").value;
+ const familyCare=document.getElementById("familyCare").checked;
+ refreshDaycareOptions(grade);
+ const base=limits[grade];
+ let used=0, day8=0, cntDay=0, cntCare=0, cntBath=0, cntNurse=0;
+ const serviceTotals={"주간보호":0,"방문요양":0,"방문목욕":0,"방문간호":0};
+ for(const service of order){
+  for(const tr of rows[service]||[]){
+   const opt=tr.querySelector(".opt").value;
+   const cnt=Math.max(0,Number(tr.querySelector(".count").value)||0);
+   const holidayInput=tr.querySelector(".holiday-count");
+   const holidayRaw=holidayInput?Math.max(0,Number(holidayInput.value)||0):0;
+   const holidayCnt=Math.min(cnt,holidayRaw);
+   const p=price(service,opt,grade);
+   const holidayBonus=Math.round((p*holidayCnt*.30)/10)*10;
+   const amt=p*cnt+holidayBonus; used+=amt; serviceTotals[service]+=amt;
+   if(tr.querySelector(".holiday-bonus")) tr.querySelector(".holiday-bonus").textContent=won(holidayBonus);
+   if(holidayInput && holidayRaw>cnt) holidayInput.value=cnt;
+   const severe=severeCareAllowance(service,opt,grade,cnt);
+   const severeCell=tr.querySelector(".severe");
+   if(severeCell) severeCell.textContent=won(severe);
+   if(service==="주간보호") cntDay+=cnt;
+   if(service==="방문요양") cntCare+=cnt;
+   if(service==="방문목욕") cntBath+=cnt;
+   if(service==="방문간호") cntNurse+=cnt;
+   tr.querySelector(".rate").textContent=won(p);
+   tr.querySelector(".amount").textContent=won(amt);
+   if(service==="주간보호" && (opt.startsWith("8시간")||opt.startsWith("10시간")||opt.startsWith("13시간"))) day8+=cnt;
+  }
+ }
+ for(const service of order){
+  if(!["방문요양","방문목욕","방문간호"].includes(service)) continue;
+  let minutes=0, count=0, bonus=0, amount=0, severeSum=0;
+  for(const tr of rows[service]||[]){
+   const n=Math.max(0,Number(tr.querySelector(".count").value)||0);
+   const opt=tr.querySelector(".opt").value;
+   const m=parseInt(opt,10)||0;
+   minutes+=m*n; count+=n;
+   bonus+=Number(((tr.querySelector(".holiday-bonus")||{}).textContent||"0").replace(/[^0-9]/g,""))||0;
+   amount+=Number(((tr.querySelector(".amount")||{}).textContent||"0").replace(/[^0-9]/g,""))||0;
+   severeSum+=Number(((tr.querySelector(".severe")||{}).textContent||"0").replace(/[^0-9]/g,""))||0;
+  }
+  const target=document.querySelector('.service-detail-summary[data-service="'+service+'"]');
+  if(target){
+   const parts=[["총 시간",formatDuration(minutes)],["총 횟수",count+"회"]];
+   parts.push(["총 가산금",won(bonus)]);
+   parts.push(["사용금액 총액",won(amount)]);
+   if(service!=="방문간호")parts.push(["중증수당 총액",won(severeSum)]);
+   target.innerHTML=parts.map(([k,v])=>'<div><label>'+k+'</label><strong>'+v+'</strong></div>').join("");
+  }
+ }
+ let pct=0;
+ if(!familyCare && day8>=15){
+   if(grade==="1"||grade==="2") pct=.10;
+   else if(["3","4","5"].includes(grade)) pct=.20;
+ }
+ const extra=Math.round(base*pct), limit=base+extra, remain=Math.max(0,limit-used), over=Math.max(0,used-limit);
+ document.getElementById("cntDay").textContent="이용횟수 "+cntDay+"회";
+ document.getElementById("cntCare").textContent="이용횟수 "+cntCare+"회";
+ document.getElementById("cntBath").textContent="이용횟수 "+cntBath+"회";
+ document.getElementById("cntNurse").textContent="이용횟수 "+cntNurse+"회";
+ document.getElementById("totalDay").textContent="총 급여 "+won(serviceTotals["주간보호"]);
+ document.getElementById("totalCare").textContent="총 급여 "+won(serviceTotals["방문요양"]);
+ document.getElementById("totalBath").textContent="총 급여 "+won(serviceTotals["방문목욕"]);
+ document.getElementById("totalNurse").textContent="총 급여 "+won(serviceTotals["방문간호"]);
+ document.getElementById("sBase").textContent=won(base);
+ document.getElementById("sExtra").textContent=won(extra)+(pct?` (${pct*100}% 추가)`:"");
+ document.getElementById("sLimit").textContent=won(limit);
+ document.getElementById("sUsed").textContent=won(used);
+ document.getElementById("sRemain").textContent=won(remain);
+ document.getElementById("sOver").textContent=won(over);
+ const copayRate=Number(document.getElementById("copayRate").value)||0;
+ const copayAmount=(Math.floor((used*copayRate) / 10) * 10);
+ document.getElementById("copayAmount").textContent=won(copayAmount);
+ document.getElementById("ruleNote").textContent=familyCare
+   ? `가족요양 이용이 선택되어 주간보호 8시간 이상 이용 ${day8}회와 관계없이 월 한도액 10%·20% 추가 적용을 제외했습니다.`
+   : day8>=15 && pct ? `주간보호 8시간 이상 이용 ${day8}회로 15회 이상 조건을 충족하여 ${grade}등급 월 한도액에 ${pct*100}%를 추가 계산했습니다.`
+   : `주간보호 8시간 이상 이용 ${day8}회입니다. 현재 추가 한도액은 적용하지 않았습니다.`;
+}
+document.getElementById("grade").onchange=calc;
+document.getElementById("copayRate").onchange=calc;
+document.getElementById("familyCare").onchange=calc;
+order.forEach(createCard);
+calc();
+</script>
+
+<div id="programFooter" style="max-width:1200px;margin:22px auto 30px;padding:13px 16px;text-align:center;
+font-size:14px;color:#5f6b78;background:#f7f9fb;border:1px solid #d8e0e8;border-radius:10px;">
+※ 이 자동 프로그램은 공단 청구와 지급에 따라 변경될 수 있습니다.
+</div>
+
+
+
+<section id="masterCopyright" style="max-width:1200px;margin:22px auto 10px;padding:14px 18px;
+background:#f7f9fb;border:1px solid #d8e0e8;border-radius:10px;text-align:center;
+font-size:12px;line-height:1.7;color:#5d6b78;">
+  <div style="font-weight:700;color:#31465a;margin-bottom:3px;">
+    © 2026 마음주간보호센터. All Rights Reserved.
+  </div>
+  <div>
+    본 프로그램의 자체 제작 화면·설명·프로그램 코드는 관련 법령이 인정하는 범위에서 보호됩니다.
+    무단 복제·배포 및 상업적 이용을 금합니다.
+  </div>
+  <div style="margin-top:3px;color:#7a8793;">
+    ※ 법령·고시 및 공공기관이 공개한 원문·수가·산정기준 자체에 대한 권리를 주장하지 않습니다.
+  </div>
+</section>
+
+
+<style id="force-print-top-four-columns">
+@media print {
+  /* 상단 4개 항목을 무조건 한 줄에 배치 */
+  html body .wrap #pageCalc .card .print-four-summary {
+    display: grid !important;
+    grid-template-columns: 24% 27% 24% 25% !important;
+    grid-auto-flow: row !important;
+    grid-auto-columns: unset !important;
+    gap: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  html body .wrap #pageCalc .card .print-four-summary > div {
+    display: flex !important;
+    grid-column: auto !important;
+    grid-row: 1 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 2mm 1mm !important;
+    border-radius: 2px !important;
+    box-sizing: border-box !important;
+  }
+
+  html body .wrap #pageCalc .card .print-four-summary > div:nth-child(1) { grid-column: 1 !important; }
+  html body .wrap #pageCalc .card .print-four-summary > div:nth-child(2) { grid-column: 2 !important; }
+  html body .wrap #pageCalc .card .print-four-summary > div:nth-child(3) { grid-column: 3 !important; }
+  html body .wrap #pageCalc .card .print-four-summary > div:nth-child(4) { grid-column: 4 !important; }
+
+  /* 인쇄환경에서는 제목/값을 조금 작게 하여 줄바꿈 방지 */
+  html body .wrap #pageCalc .card .print-four-summary label {
+    font-size: 9px !important;
+    line-height: 1.1 !important;
+    margin: 0 0 1mm !important;
+    white-space: nowrap !important;
+  }
+
+  html body .wrap #pageCalc .card .print-four-summary .big,
+  html body .wrap #pageCalc .card .print-four-summary select {
+    font-size: 13px !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+  }
+
+  html body .wrap #pageCalc .card .print-four-summary select {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+</style>
+
+
+<script id="beneficiary-info-local-only">
+(function(){
+  function syncBeneficiaryInfo(){
+    var g=document.getElementById("grade");
+    var c=document.getElementById("copay");
+    var gv=document.getElementById("beneficiaryGradeView");
+    var cv=document.getElementById("beneficiaryCopayView");
+    if(g && gv){
+      var gt=(g.options && g.selectedIndex>=0) ? g.options[g.selectedIndex].textContent : g.value;
+      gv.textContent=gt || "-";
+    }
+    if(c && cv){
+      var ct=(c.options && c.selectedIndex>=0) ? c.options[c.selectedIndex].textContent : c.value;
+      cv.textContent=ct || "-";
+    }
+  }
+  window.addEventListener("DOMContentLoaded",function(){
+    syncBeneficiaryInfo();
+    var g=document.getElementById("grade"), c=document.getElementById("copay");
+    if(g) g.addEventListener("change",syncBeneficiaryInfo);
+    if(c) c.addEventListener("change",syncBeneficiaryInfo);
+  });
+})();
+</script>
+
+<script>function formatDuration(totalMinutes){const m=Math.max(0,Math.round(Number(totalMinutes)||0));const h=Math.floor(m/60);const r=m%60;return h.toLocaleString("ko-KR")+"시간"+(r?" "+r+"분":"");}</script>
+<script>
+(function(){
+function updatePrivate(){
+ let total=0;
+ let otherCount=0,otherAmount=0;
+ document.querySelectorAll("#privateOtherTable tbody tr").forEach(row=>{
+  const price=Math.max(0,Number((row.querySelector(".privateOtherPrice").value||"").replace(/,/g,""))||0);
+  const count=Math.max(0,Math.floor(Number(row.querySelector(".privateOtherCount").value)||0));
+  const amount=price*count;
+  row.querySelector(".privateOtherTotal").textContent=amount.toLocaleString("ko-KR")+"원";
+  otherCount+=count;otherAmount+=amount;total+=amount;
+ });
+ let timeCount=0, timeMinutes=0, timeAmount=0;
+ document.querySelectorAll(".private-time-table tbody tr").forEach(row=>{
+  const price=Math.max(0,Number(row.querySelector(".privateTimePrice").value.replace(/,/g,""))||0);
+  const count=Math.max(0,Math.floor(Number(row.querySelector(".privateTimeCount").value)||0));
+  const holiday=Math.max(0,Number(row.querySelector(".privateTimeHoliday").value.replace(/,/g,""))||0);
+  const holidayCount=Math.max(0,Math.floor(Number(row.querySelector(".privateTimeHolidayCount").value)||0));
+  const amount=price*count+holiday*holidayCount;
+  row.querySelector(".privateTimeTotal").textContent=amount.toLocaleString("ko-KR")+"원";
+  total+=amount; timeCount+=count+holidayCount; timeAmount+=amount; timeMinutes+=(parseInt(row.cells[0].textContent,10)||0)*(count+holidayCount);
+ });
+ document.getElementById("privateTimeSummary").innerHTML=[["총 시간",formatDuration(timeMinutes)],["총 횟수",timeCount+"회"],["서비스별 사비 총액",timeAmount.toLocaleString("ko-KR")+"원"]].map(([k,v])=>'<div><label>'+k+'</label><strong>'+v+'</strong></div>').join("")+'<div class="summary-reset-cell"><button type="button" class="section-reset-btn" id="privateTimeReset">초기화</button></div>';
+ document.getElementById("privateOtherSubtotal").textContent=otherAmount.toLocaleString("ko-KR")+"원";
+ document.getElementById("cntPrivateOther").textContent="이용횟수 "+otherCount+"회";
+ document.getElementById("totalPrivateOther").textContent="총 이용 비용 "+otherAmount.toLocaleString("ko-KR")+"원";
+
+ document.getElementById("totalPrivate").textContent="총 이용 비용 "+timeAmount.toLocaleString("ko-KR")+"원";
+ document.getElementById("cntPrivate").textContent="이용횟수 "+timeCount.toLocaleString("ko-KR")+"회";
+ const copay=Number((document.getElementById("copayAmount").textContent||"").replace(/[^0-9]/g,""))||0;
+ document.getElementById("copayDisplay").textContent=(copay+(document.getElementById("includePrivateCost").checked?total:0)).toLocaleString("ko-KR")+"원";
+}
+window.calcPrivate=updatePrivate;
+const otherBody=document.querySelector("#privateOtherTable tbody");
+document.getElementById("privateOtherAdd").addEventListener("click",()=>{
+ const kind=document.getElementById("privateOtherSelect").value;
+ const row=document.createElement("tr");
+ const label=kind==="기타"?'<input class="privateOtherName" type="text" placeholder="기타 항목명 입력" aria-label="기타 항목명 입력">':kind;
+ row.innerHTML='<td>'+label+'</td><td><input class="privateOtherPrice" type="text" inputmode="numeric" value="0"></td><td><input class="privateOtherCount" type="number" min="0" step="1" value="0"></td><td class="money privateOtherTotal">0원</td><td><button type="button" class="del privateOtherDelete">삭제</button></td>';
+ otherBody.appendChild(row);updatePrivate();
+ if(kind==="기타")row.querySelector(".privateOtherName").focus();
+});
+document.getElementById("privateOtherReset").addEventListener("click",()=>{
+ otherBody.innerHTML="";
+ document.getElementById("privateOtherSelect").selectedIndex=0;
+ updatePrivate();
+});
+document.getElementById("privateTimeSummary").addEventListener("click",e=>{
+ if(!e.target.closest("#privateTimeReset"))return;
+ document.querySelector(".private-time-table tbody").innerHTML="";
+ document.getElementById("privateTimeSelect").selectedIndex=0;
+ updatePrivate();
+});
+otherBody.addEventListener("click",e=>{
+ if(e.target.closest(".privateOtherDelete")){e.target.closest("tr").remove();updatePrivate();}
+});
+otherBody.addEventListener("input",e=>{
+ if(e.target.matches(".privateOtherPrice")){
+  const el=e.target, start=el.selectionStart, digitsBefore=el.value.slice(0,start).replace(/\D/g,"").length;
+  const digits=el.value.replace(/\D/g,"");
+  el.value=digits?Number(digits).toLocaleString("ko-KR"):"";
+  let pos=0,n=0;while(pos<el.value.length&&n<digitsBefore){if(/\d/.test(el.value[pos]))n++;pos++;}
+  el.setSelectionRange(pos,pos);
+ }
+ updatePrivate();
+});
+document.getElementById("includePrivateCost").addEventListener("change",updatePrivate);
+const target=document.getElementById("copayAmount");
+new MutationObserver(updatePrivate).observe(target,{childList:true,characterData:true,subtree:true});
+updatePrivate();
+})();
+</script>
+<script id="private-time-dynamic">
+(function(){
+ const options=Array.from({length:15},(_,i)=>(i+2)*30);
+ const select=document.getElementById('privateTimeSelect');
+ const tbody=document.querySelector('.private-time-table tbody');
+ if(!select||!tbody)return;
+ select.innerHTML=options.map(n=>`<option value="${n}">${n}분</option>`).join('');
+ function add(){
+  const minutes=Number(select.value);
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${minutes}분</td><td><input class="privateTimePrice" type="text" inputmode="numeric" value="0"></td><td><input class="privateTimeCount" type="number" min="0" step="1" value="0"></td><td><input class="privateTimeHoliday" type="text" inputmode="numeric" value="0"></td><td><input class="privateTimeHolidayCount" type="number" min="0" step="1" value="0"></td><td class="money privateTimeTotal">0원 <button type="button" class="private-row-delete" title="행 삭제">×</button></td>`;
+  tr.querySelector('.private-row-delete').addEventListener('click',()=>{tr.remove();if(typeof calcPrivate==='function')calcPrivate();});
+  tr.querySelectorAll('input').forEach(el=>el.addEventListener('input',()=>{
+   if(el.matches('.privateTimePrice,.privateTimeHoliday')){
+    const digits=el.value.replace(/\D/g,'');
+    el.value=digits?Number(digits).toLocaleString('ko-KR'):'';
+   }
+   if(typeof calcPrivate==='function')calcPrivate();
+  }));
+  tbody.appendChild(tr);
+  if(typeof calcPrivate==='function')calcPrivate();
+ }
+ document.getElementById('privateTimeAdd').addEventListener('click',add);
+})();
+</script>
+<style id="private-time-actions-style">
+.private-time-actions{display:flex;gap:9px;align-items:center;margin:8px 0 12px;flex-wrap:wrap}
+.private-time-actions label{margin:0;font-weight:700}
+.private-time-actions select{width:150px}
+.private-time-actions button{margin:0}
+.private-row-delete{font-size:14px;padding:2px 6px;margin-left:5px;background:#fff0f0;color:#b42318}
+@media print{.private-time-actions,.private-row-delete{display:none!important}}
+</style>
+<script id="calculator-reset">
+(function(){
+ const button=document.getElementById("calcResetBtn");
+ if(!button)return;
+ button.addEventListener("click",function(){
+  if(!button.dataset.armed){button.dataset.armed="1";button.textContent="한 번 더 누르면 초기화";setTimeout(function(){delete button.dataset.armed;button.textContent="초기화";},3000);return;}delete button.dataset.armed;button.textContent="초기화";
+
+  document.getElementById("beneficiaryName").value="";
+  document.getElementById("beneficiaryBirth").value="";
+  document.getElementById("grade").value="5";
+  document.getElementById("copayRate").value="0.15";
+  document.getElementById("familyCare").checked=false;
+  document.getElementById("includePrivateCost").checked=false;
+
+  for(const service of order){
+   const list=rows[service]||[];
+   list.slice(1).forEach(tr=>tr.remove());
+   if(list.length){
+    rows[service]=[list[0]];
+    const tr=list[0];
+    const opt=tr.querySelector(".opt");
+    if(opt)opt.selectedIndex=0;
+    tr.querySelectorAll(".count").forEach(input=>input.value="0");
+   }
+  }
+
+  document.querySelector(".private-time-table tbody").innerHTML="";
+  document.querySelector("#privateOtherTable tbody").innerHTML="";
+  document.getElementById("privateTimeSelect").selectedIndex=0;
+  document.getElementById("privateOtherSelect").selectedIndex=0;
+
+  calc();
+  if(typeof calcPrivate==="function")calcPrivate();
+  document.getElementById("pageCalc").scrollIntoView({behavior:"smooth",block:"start"});
+ });
+})();
+</script>
+<script id="mobile-iframe-autoheight">
+(function(){
+ var ids=["visitBonusFrame","bonusFrame","dayMonthlyFrame"];
+ function fit(f){try{var d=f.contentDocument;if(!d||!d.body)return;var h=Math.max(d.body.scrollHeight,d.documentElement.scrollHeight);if(h>200)f.style.setProperty("height",(h+30)+"px","important");f.setAttribute("scrolling","no");}catch(e){}}
+ ids.forEach(function(id){var f=document.getElementById(id);if(!f)return;
+    f.addEventListener("load",function(){fit(f);try{var d=f.contentDocument;["input","change","click"].forEach(function(ev){d.addEventListener(ev,function(){setTimeout(function(){fit(f)},60)},true)});if(window.ResizeObserver)new ResizeObserver(function(){fit(f)}).observe(d.body);}catch(e){}});
+  fit(f);});
+ var old=window.showPage;window.showPage=function(n){old(n);setTimeout(function(){ids.forEach(function(id){var f=document.getElementById(id);if(f)fit(f)})},80)};
+ window.addEventListener("resize",function(){ids.forEach(function(id){var f=document.getElementById(id);if(f)fit(f)})});
+})();
+</script>
+<script id="responsive-table-labels">
+(function(){
+ function label(){
+  document.querySelectorAll("#pageCalc table").forEach(function(t){
+   var hs=Array.prototype.map.call(t.querySelectorAll("thead th"),function(th){return th.textContent.trim()});
+   t.querySelectorAll("tbody tr").forEach(function(tr){
+    Array.prototype.forEach.call(tr.children,function(td,i){if(td.getAttribute("data-label")!==hs[i])td.setAttribute("data-label",hs[i]||"")});
+   });
+  });
+ }
+ label();
+ var root=document.getElementById("pageCalc");
+ if(root&&window.MutationObserver)new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){if(ms[i].addedNodes.length){label();break}}}).observe(root,{childList:true,subtree:true});
+ /* 가산 계산기(내부 화면)에도 휴대폰용 보정 적용 */
+ var innerCss="@media(max-width:760px){html,body{-webkit-text-size-adjust:100%;font-size:13px!important}h1{font-size:19px!important;line-height:1.3!important}h2{font-size:15px!important}h3{font-size:13px!important}label,.field label{font-size:12px!important}small,.small,.field small,.note,.notice{font-size:11.5px!important}input,select{font-size:14px!important;min-height:36px;padding:6px 8px!important}button{min-height:36px;font-size:12.5px!important}.wrap{padding-left:10px!important;padding-right:10px!important}table{font-size:11.5px!important}.table-scroll,.annual>div,.rules{overflow-x:auto}.tabs{flex-wrap:nowrap!important;overflow-x:auto}.tabs button{flex:0 0 auto;padding:7px 12px!important}.months{grid-template-columns:repeat(6,1fr)!important}.month{padding:7px 2px!important;font-size:12.5px}header{padding:14px!important}header h1{font-size:17px!important}.brand-sub{font-size:11px!important}.hero{padding:16px 14px!important}.hero p{font-size:13px!important}.top{padding:18px 14px!important}.top p,.eyebrow{font-size:12px!important}.result{padding:10px!important}.result b{font-size:16px!important}.annual-total{font-size:18px!important}.hero-result{padding:16px!important}.hero-result strong{font-size:24px!important}.metric strong{font-size:15px!important}.calc-list li{font-size:12px!important}.mcp-total .score{font-size:34px!important}.mcp-metric .num{font-size:17px!important}.mcp-status .val{font-size:15px!important}.staff-table{font-size:11.5px!important}.card-h h2{font-size:15px!important}}@media(max-width:400px){.months{grid-template-columns:repeat(4,1fr)!important}}";
+ ["visitBonusFrame","bonusFrame","dayMonthlyFrame"].forEach(function(id){
+  var f=document.getElementById(id);if(!f)return;
+  function inject(){try{var d=f.contentDocument;if(!d||!d.head||d.getElementById("rsp"))return;var st=d.createElement("style");st.id="rsp";st.textContent=innerCss;d.head.appendChild(st);}catch(e){}}
+  f.addEventListener("load",inject);inject();
+ });
+})();
+</script>
+<style id="section-jump-style">
+.section-jump{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;padding:8px;background:#f3f7fa;border:1px solid #d6e1e8;border-radius:8px}
+.section-jump a,.service-quick-links a{display:inline-block;padding:6px 10px;background:#fff;border:1px solid #b8ccdf;border-radius:6px;color:#173b5d;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
+.service-quick-links a{padding:9px 12px;font-size:14px;background:#e8f1fb}
+.section-jump a.go-top,.service-quick-links a.go-top{background:#173b5d;color:#fff;border-color:#173b5d}
+#serviceQuickNav,#services>.card,#privateServiceCard,#privateCostCard{scroll-margin-top:12px}
+@media screen and (max-width:760px){
+ #serviceQuickNav,#services>.card,#privateServiceCard,#privateCostCard{scroll-margin-top:70px}
+ .section-jump{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .section-jump a,.service-quick-links a{text-align:center;white-space:normal;padding:9px 4px;min-width:0;overflow-wrap:anywhere}
+ .service-quick-links{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .section-jump a.go-top,.service-quick-links a.go-top{grid-column:1/-1}
+}
+@media print{.section-jump,.service-quick-links .go-top{display:none!important}}
+</style>
+<script id="section-jump">
+(function(){
+ var items=[["service-day","주간보호"],["service-care","방문요양"],["service-bath","방문목욕"],["service-nurse","방문간호"],
+  ["privateServiceCard","비급여 사비 - 시간별 이용요금"],["privateCostCard","비급여 사비(미용·식비·간식비·기타)"]];
+ function go(id){
+  if(id==="top"){window.scrollTo(0,0);return;}
+  var el=document.getElementById(id);if(!el)return;var nav=document.querySelector(".navtabs");var off=(nav&&getComputedStyle(nav).position==="sticky")?nav.offsetHeight+8:12;window.scrollTo(0,el.getBoundingClientRect().top+window.pageYOffset-off);
+ }
+ items.forEach(function(it){
+  var card=document.getElementById(it[0]);if(!card)return;
+  var h=card.querySelector("h2");if(!h)return;
+  var nav=document.createElement("div");nav.className="section-jump";
+  nav.innerHTML=items.filter(function(x){return x[0]!==it[0]}).map(function(x){return '<a href="#'+x[0]+'">'+x[1]+'</a>'}).join("")+'<a href="#top" class="go-top">처음으로</a>';
+  h.parentNode.insertBefore(nav,h.nextSibling);
+ });
+ document.addEventListener("click",function(e){
+  var a=e.target.closest&&e.target.closest(".section-jump a,.service-quick-links a");if(!a)return;
+  e.preventDefault();go(a.getAttribute("href").slice(1));
+ });
+})();
+</script>
+<style id="phone-small-text">
+@media screen and (max-width:760px){
+ html body{font-size:14px!important}
+ html body .card h1,html body #pageRates h1{font-size:19px!important;line-height:1.3!important}
+ html body .card h2,html body #pageCalc .beneficiary-card h2,html body #pageCalc .beneficiary-card + .card h2,html body #services>.card h2{font-size:15px!important}
+ html body #pageRates .rate-section>h3{font-size:15px!important;padding:9px 12px!important}
+ html body #pageCalc>.card:first-of-type>div,html body #pageRates .card>div:first-child>div{font-size:13px!important;line-height:1.5!important}
+ html body #pageCalc>.card:first-of-type>div:nth-of-type(1){font-size:11px!important}
+ html body .claim-disclaimer{font-size:11.5px!important;padding:8px 10px!important}
+ html body .note,html body #ruleNote,html body #pageCalc .beneficiary-card .note{font-size:11.5px!important}
+ html body label,html body #pageCalc .beneficiary-summary label,html body #pageCalc .beneficiary-card + .card .summary label{font-size:11.5px!important}
+ html body select,html body input[type=text],html body input[type=number],
+ html body #pageCalc .beneficiary-summary input,html body #pageCalc .beneficiary-summary select{font-size:14px!important;min-height:36px!important;height:auto!important;padding:6px 8px!important}
+ html body button{min-height:36px}
+ html body .navbtn{font-size:12.5px!important;padding:7px 10px!important}
+ html body #pageCalc .family-care-toggle strong{font-size:12px!important}
+ html body #pageCalc .family-care-toggle small{font-size:10px!important}
+ html body #pageCalc .summary .big,html body #pageCalc .beneficiary-card + .card .summary .big{font-size:15px!important}
+ html body #pageCalc .service-five .service-count,html body #pageCalc .service-five .service-total{font-size:12.5px!important}
+ html body #pageCalc .copay-value-row .private-check{font-size:11px!important}
+ html body .calc-print-actions button,html body .add,html body .del,html body .section-reset-btn{font-size:13px!important;padding:7px 10px!important}
+ html body .service-quick-links a,html body .section-jump a{font-size:12px!important;padding:7px 4px!important}
+ html body .service-detail-summary label{font-size:11px!important}
+ html body .service-detail-summary strong{font-size:14px!important}
+ html body #services tbody tr td::before,html body #pageCalc .private-time-table tbody tr td::before,html body #privateOtherTable tbody tr td::before{font-size:11px!important}
+ html body #services td.money,html body #pageCalc .private-time-table td.money,html body #privateOtherTable td.money{font-size:14px!important}
+ html body #services tbody tr,html body #pageCalc .private-time-table tbody tr,html body #privateOtherTable tbody tr{padding:10px!important;gap:6px 8px!important}
+ html body #pageRates .rate-table th,html body #pageRates .rate-table td,html body #pageRates table th,html body #pageRates table td{font-size:12.5px!important;padding:6px 5px!important}
+ html body #programFooter{font-size:12px!important}
+ html body #masterCopyright{font-size:11px!important}
+}
+</style>
+<script id="ios-no-input-zoom">
+(function(){if(/iPhone|iPad|iPod/.test(navigator.userAgent)){var m=document.querySelector('meta[name=viewport]');if(m)m.setAttribute("content","width=device-width,initial-scale=1,maximum-scale=1");}})();
+</script>
+<script id="pwa-register">
+if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}
+</script>
+</body></html>
