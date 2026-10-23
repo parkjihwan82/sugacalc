@@ -1,0 +1,35 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'kr.maeum.sugacalc'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "kr.maeum.sugacalc"
+        minSdk 24
+        targetSdk 34
+        versionCode((System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger())
+        versionName "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "1")
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("release.keystore")
+            storePassword "maeum2026"
+            keyAlias "sugacalc"
+            keyPassword "maeum2026"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
